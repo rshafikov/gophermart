@@ -1,10 +1,10 @@
 module github.com/rshafikov/gophermart
 
-go 1.24.1
+go 1.23.3
 
 require (
 	github.com/caarlos0/env/v6 v6.10.1
-	github.com/jackc/pgx/v5 v5.7.4
+	github.com/jackc/pgx/v5 v5.7.2
 )
 
 require (
