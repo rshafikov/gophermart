@@ -16,3 +16,7 @@ tasks:
     desc: "Run server"
     cmds:
       - "./{{.BIN_PATH}} -d {{.DB_DSN}}"
+
+  linter:
+    run: once
+    cmd: go vet -vettool=`which statictest` ./...
