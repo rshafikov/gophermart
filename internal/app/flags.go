@@ -20,13 +20,14 @@ type dbSettings struct {
 	User     string
 	Password string
 	Name     string
+	URI      string
 }
 
 // postgres://postgres:password@localhost:5432/postgres
 func (d *dbSettings) String() string {
 	url := fmt.Sprintf("postgres://%s:%s@%s:%s/%s", d.User, d.Password, d.Host, d.Port, d.Name)
 
-	if url == "://:@:/" {
+	if url == "postgres://:@:/" {
 		url = ""
 	}
 
@@ -100,16 +101,6 @@ type defaultConfig struct {
 	RunAddress     netAddr
 	AccrualAddress netAddr
 	LogLevel       string
-}
-
-func (cfg *defaultConfig) GetDSN() string {
-	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=disable TimeZone=UTC",
-		cfg.DB.Host,
-		cfg.DB.User,
-		cfg.DB.Password,
-		cfg.DB.Name,
-		cfg.DB.Port,
-	)
 }
 
 var Config = defaultConfig{

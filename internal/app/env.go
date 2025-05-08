@@ -15,7 +15,7 @@ type envParams struct {
 var Env envParams
 
 func ParseEnv() error {
-	err := env.Parse(&envParams{})
+	err := env.Parse(&Env)
 
 	if err != nil {
 		log.Println("Unable to parse ENV:", err)
