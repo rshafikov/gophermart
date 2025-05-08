@@ -21,7 +21,7 @@ func NewApplication(cfg defaultConfig) *Application {
 }
 
 func (app *Application) ConnectToDatabase(ctx context.Context) error {
-	dsn := app.Config.DB.String()
+	dsn := app.Config.DB.URI
 	_, err := pgx.Connect(ctx, dsn)
 	if err != nil {
 		return err
