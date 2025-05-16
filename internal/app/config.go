@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/rshafikov/gophermart/internal/core/logger"
 	"log"
 	"net"
 )
@@ -48,4 +49,9 @@ func InitConfig() {
 		log.Fatal("database URI is empty, please set it using ENV or CLI")
 	}
 	Config.DB.URI = dbURI
+
+	err = logger.Initialize(Config.LogLevel)
+	if err != nil {
+		log.Fatal("unable to initialize logger:", err)
+	}
 }
