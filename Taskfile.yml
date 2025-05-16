@@ -4,19 +4,54 @@ env:
   BIN_DIR: cmd/gophermart
   BIN_NAME: main
   BIN_PATH: "{{.BIN_DIR}}/{{.BIN_NAME}}"
-  DB_DSN: postgres://postgres:password@localhost:5432/postgres
+
+dotenv: [ ".env", ]
 
 tasks:
+  # BASE TASKS
+  test:
+    desc: "Run tests"
+    deps: [ lint, ]
+    cmd: go test ./...
+
   build:
     desc: "Build bin files"
-    cmds:
-      - go build -v -o "{{.BIN_PATH}}" "{{.BIN_DIR}}/main.go"
+    deps: [ lint, ]
+    cmd: go build -v -o "{{.BIN_PATH}}" "{{.BIN_DIR}}/main.go"
 
   run:
     desc: "Run server"
-    cmds:
-      - "./{{.BIN_PATH}} -d {{.DB_DSN}}"
+    deps: [ build, ]
+    cmd: "./{{.BIN_PATH}} -d {{.DB_URI}}"
 
-  linter:
+  lint:
+    desc: "Run linter"
     run: once
-    cmd: go vet -vettool=`which statictest` ./...
+    cmds:
+      - golangci-lint run -D errcheck
+      - go vet -vettool=`which statictest` ./...
+
+  # DATABASE
+  db-create:
+    desc: "Create DB"
+    cmds:
+      - echo Creating database {{.DB_NAME}}...
+      - PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -d postgres -c "CREATE DATABASE {{.DB_NAME}};"
+  
+  db-migrate:
+    desc: "Run migrations"
+    cmds:
+      - |
+        echo "Running migrations..."
+        for file in ./migrations/*_*.sql; do \
+        echo "Applying $file..."; \
+        PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -d {{.DB_NAME}} -f $file; \
+        done
+
+  db-reset:
+    desc: "Reset database (drop + create + migrate)"
+    cmds:
+      - echo "Resetting database {{.DB_NAME}}..."
+      - PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -c "DROP DATABASE IF EXISTS {{.DB_NAME}};" || true
+      - task db-create
+      - task db-migrate

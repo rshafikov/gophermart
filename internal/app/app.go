@@ -2,9 +2,13 @@ package app
 
 import (
 	"context"
+	"errors"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/database"
+	"go.uber.org/zap"
 	"log"
 )
 
@@ -24,6 +28,11 @@ func (app *Application) ConnectToDatabase(ctx context.Context) error {
 	dsn := app.Config.DB.URI
 	_, err := pgx.Connect(ctx, dsn)
 	if err != nil {
+		var pgErr *pgconn.ConnectError
+		if errors.As(err, &pgErr) {
+			logger.L.Debug("unable to connect to database", zap.String("DB_URI", dsn))
+			return database.ErrConnectDB
+		}
 		return err
 	}
 
