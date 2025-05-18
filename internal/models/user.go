@@ -20,4 +20,5 @@ type UserRepository interface {
 type UserService interface {
 	Register(ctx context.Context, login, password string) error
 	Login(ctx context.Context, login, password string) (*User, error)
+	GetByLogin(ctx context.Context, login string) (*User, error)
 }

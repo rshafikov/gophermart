@@ -54,3 +54,13 @@ func (s *UserService) Login(ctx context.Context, login, password string) (*model
 
 	return user, nil
 }
+
+func (s *UserService) GetByLogin(ctx context.Context, login string) (*models.User, error) {
+	user, err := s.repo.GetByLogin(ctx, login)
+	if err != nil {
+		log.Println("unable to GET user by login:", err)
+		return nil, ErrUserNotFound
+	}
+
+	return user, nil
+}
