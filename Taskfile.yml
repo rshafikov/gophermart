@@ -22,7 +22,7 @@ tasks:
   run:
     desc: "Run server"
     deps: [ build, ]
-    cmd: "./{{.BIN_PATH}} -d {{.DB_URI}}"
+    cmd: "./{{.BIN_PATH}} -d {{.DB_URI}} -l debug"
 
   lint:
     desc: "Run linter"

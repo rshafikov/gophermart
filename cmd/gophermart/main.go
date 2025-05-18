@@ -10,16 +10,13 @@ import (
 	"github.com/rshafikov/gophermart/internal/router"
 	"github.com/rshafikov/gophermart/internal/service"
 	"go.uber.org/zap"
-	"log"
-	"net/http"
 )
 
 func main() {
 	app.InitConfig()
 
 	Application := app.NewApplication(app.Config)
-	err := Application.ConnectToDatabase(context.TODO())
-	if err != nil {
+	if err := Application.ConnectToDatabase(context.Background()); err != nil {
 		logger.L.Fatal("database connect error", zap.Error(err))
 	}
 
@@ -30,8 +27,5 @@ func main() {
 	r := chi.NewRouter()
 	r.Mount("/", mainRouter.Routes())
 
-	err = http.ListenAndServe(app.Config.RunAddress.String(), r)
-	if err != nil {
-		log.Fatal(err)
-	}
+	Application.RunServer(r)
 }
