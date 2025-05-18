@@ -32,7 +32,8 @@ func (mr *Router) Routes() chi.Router {
 			r.Post("/register", userHandler.Register)
 			r.Post("/login", userHandler.Login)
 			r.Group(func(r chi.Router) {
-				r.Post("/orders", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+				r.Use(middlewares.Authenticater(mr.JWT, mr.UserService))
+				r.Post("/orders", userHandler.CreateOrder)
 				r.Get("/orders", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 				r.Get("/balance", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 				r.Post("/balance/withdraw", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))

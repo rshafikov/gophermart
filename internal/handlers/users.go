@@ -3,8 +3,10 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/rshafikov/gophermart/internal/core/contextkeys"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/core/security"
+	"github.com/rshafikov/gophermart/internal/models"
 	"github.com/rshafikov/gophermart/internal/schemas"
 	"github.com/rshafikov/gophermart/internal/service"
 	"go.uber.org/zap"
@@ -116,4 +118,20 @@ func (h *UserHandler) ValidateUserCredentials(login string, password string) err
 		return errors.New("invalid password")
 	}
 	return nil
+}
+
+func (h *UserHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
+	u, ok := r.Context().Value(contextkeys.UserKey).(*models.User)
+	if !ok {
+		logger.L.Debug("user not found in context")
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
+
+	_, err := w.Write([]byte(u.Login))
+	if err != nil {
+		logger.L.Debug("unable to write response", zap.Error(err))
+		http.Error(w, "internal error", http.StatusInternalServerError)
+		return
+	}
 }

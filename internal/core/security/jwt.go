@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"github.com/golang-jwt/jwt/v4"
 	"github.com/rshafikov/gophermart/internal/app"
-	"log"
+	"github.com/rshafikov/gophermart/internal/core/logger"
+	"go.uber.org/zap"
 	"time"
 )
 
@@ -57,16 +58,16 @@ func (j *jwtHandler) ParseJWT(tokenString string) (*TokenPayload, error) {
 			}
 			return []byte(app.Env.Secret), nil
 		})
+
 	if err != nil {
-		log.Println("unable to parse token:", err)
+		logger.L.Debug("unable to parse token:", zap.Error(err))
 		return nil, errors.New("unable to parse token")
 	}
 
 	if !token.Valid {
-		log.Println("JWTToken is not valid")
+		logger.L.Debug("token is not valid")
 		return nil, errors.New("JWTToken is not valid")
 	}
 
-	log.Println("JWTToken os valid")
 	return claims, nil
 }
