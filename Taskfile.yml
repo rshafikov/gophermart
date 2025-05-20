@@ -12,7 +12,7 @@ tasks:
   test:
     desc: "Run tests"
     deps: [ lint, ]
-    cmd: go test ./...
+    cmd: go test ./internal/...
 
   build:
     desc: "Build bin files"

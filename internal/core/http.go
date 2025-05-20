@@ -1,52 +1,12 @@
-package handlers
+package core
 
 import (
 	"bytes"
-	"context"
-	"errors"
-	"github.com/rshafikov/gophermart/internal/core/security"
-	"github.com/rshafikov/gophermart/internal/models"
 	"github.com/stretchr/testify/require"
 	"io"
 	"net/http"
 	"testing"
 )
-
-type MapUserRepository struct {
-	DB map[string]*models.User
-}
-
-func NewMapUserRepository() models.UserRepository {
-	return &MapUserRepository{DB: make(map[string]*models.User)}
-}
-
-func (m *MapUserRepository) CreateUser(ctx context.Context, user *models.User) error {
-	user.Password, _ = security.HashPassword(user.Password)
-	m.DB[user.Login] = user
-	return nil
-}
-
-func (m *MapUserRepository) GetByLogin(ctx context.Context, login string) (*models.User, error) {
-	user, ok := m.DB[login]
-	if !ok {
-		return nil, errors.New("user not found")
-	}
-	return user, nil
-}
-
-func (m *MapUserRepository) Clear() {
-	m.DB = make(map[string]*models.User)
-}
-
-type MockJWTGenerator struct{}
-
-func (m *MockJWTGenerator) GenerateJWT(login string) (*security.JWTToken, error) {
-	return &security.JWTToken{Token: "fake-token " + login, TokenType: security.TokenType}, nil
-}
-
-func (m *MockJWTGenerator) ParseJWT(token string) (*security.TokenPayload, error) {
-	return nil, nil
-}
 
 type HTTPClient struct {
 	Client  *http.Client
