@@ -3,7 +3,10 @@ package handlers
 import (
 	"context"
 	"github.com/go-chi/chi/v5"
+	"github.com/rshafikov/gophermart/internal/core"
+	"github.com/rshafikov/gophermart/internal/core/security"
 	"github.com/rshafikov/gophermart/internal/models"
+	"github.com/rshafikov/gophermart/internal/repository"
 	"github.com/rshafikov/gophermart/internal/service"
 	"github.com/stretchr/testify/assert"
 	"net/http"
@@ -13,9 +16,9 @@ import (
 )
 
 func TestUserHandler_Register(t *testing.T) {
-	userRepo := NewMapUserRepository()
+	userRepo := repository.NewMockUserRepository()
 	userServce := service.NewUserService(userRepo)
-	jwtHanlder := &MockJWTGenerator{}
+	jwtHanlder := &security.MockJWTHandler{}
 	handler := NewUserHandler(userServce, jwtHanlder)
 	apiUserRegisterPath := "/api/user/register"
 
@@ -89,7 +92,7 @@ func TestUserHandler_Register(t *testing.T) {
 	}
 
 	var notCompress bool
-	client := NewHTTPClient(ts.URL, notCompress)
+	client := core.NewHTTPClient(ts.URL, notCompress)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
@@ -105,9 +108,9 @@ func TestUserHandler_Register(t *testing.T) {
 }
 
 func TestUserHandler_Login(t *testing.T) {
-	userRepo := NewMapUserRepository()
+	userRepo := repository.NewMockUserRepository()
 	userServce := service.NewUserService(userRepo)
-	jwtHanlder := &MockJWTGenerator{}
+	jwtHanlder := &security.MockJWTHandler{}
 	handler := NewUserHandler(userServce, jwtHanlder)
 	apiUserLoginPath := "/api/user/login"
 
@@ -178,7 +181,7 @@ func TestUserHandler_Login(t *testing.T) {
 	}
 
 	var notCompress bool
-	client := NewHTTPClient(ts.URL, notCompress)
+	client := core.NewHTTPClient(ts.URL, notCompress)
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

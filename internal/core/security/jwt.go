@@ -7,11 +7,15 @@ import (
 	"github.com/rshafikov/gophermart/internal/app"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"go.uber.org/zap"
+	"strings"
 	"time"
 )
 
 const TokenExpTime = 60 * time.Minute
 const TokenType = "Bearer"
+
+var ErrTokenInvalid = errors.New("token is invalid")
+var ErrUnableToParseToken = errors.New("unable to parse token")
 
 type JWTToken struct {
 	Token     string `json:"token"`
@@ -61,13 +65,28 @@ func (j *jwtHandler) ParseJWT(tokenString string) (*TokenPayload, error) {
 
 	if err != nil {
 		logger.L.Debug("unable to parse token:", zap.Error(err))
-		return nil, errors.New("unable to parse token")
+		return nil, ErrUnableToParseToken
 	}
 
 	if !token.Valid {
 		logger.L.Debug("token is not valid")
-		return nil, errors.New("JWTToken is not valid")
+		return nil, ErrTokenInvalid
 	}
 
 	return claims, nil
+}
+
+type MockJWTHandler struct{}
+
+func (m *MockJWTHandler) GenerateJWT(login string) (*JWTToken, error) {
+	return &JWTToken{Token: "fake-token " + login, TokenType: TokenType}, nil
+}
+
+func (m *MockJWTHandler) ParseJWT(token string) (*TokenPayload, error) {
+	splitedToken := strings.Split(token, "fake-token ")
+	if len(splitedToken) != 2 || splitedToken[0] != "" {
+		return nil, ErrTokenInvalid
+	}
+
+	return &TokenPayload{jwt.RegisteredClaims{Subject: splitedToken[1]}}, nil
 }

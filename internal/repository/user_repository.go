@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/rshafikov/gophermart/internal/core/security"
 	"github.com/rshafikov/gophermart/internal/database/queries"
 	"github.com/rshafikov/gophermart/internal/models"
 	"log"
@@ -42,4 +43,30 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (*models.
 		return nil, err
 	}
 	return &user, nil
+}
+
+type MockUserRepository struct {
+	DB map[string]*models.User
+}
+
+func NewMockUserRepository() models.UserRepository {
+	return &MockUserRepository{DB: make(map[string]*models.User)}
+}
+
+func (m *MockUserRepository) CreateUser(ctx context.Context, user *models.User) error {
+	user.Password, _ = security.HashPassword(user.Password)
+	m.DB[user.Login] = user
+	return nil
+}
+
+func (m *MockUserRepository) GetByLogin(ctx context.Context, login string) (*models.User, error) {
+	user, ok := m.DB[login]
+	if !ok {
+		return nil, errors.New("user not found")
+	}
+	return user, nil
+}
+
+func (m *MockUserRepository) Clear() {
+	m.DB = make(map[string]*models.User)
 }
