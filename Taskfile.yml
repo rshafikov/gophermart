@@ -1,0 +1,74 @@
+version: '3'
+
+env:
+  BIN_DIR: cmd/gophermart
+  BIN_NAME: main
+  BIN_PATH: "{{.BIN_DIR}}/{{.BIN_NAME}}"
+
+dotenv: [ ".env", ]
+
+tasks:
+  # BASE TASKS
+  lint:
+    desc: "Run linter"
+    run: once
+    cmds:
+      - golangci-lint run -D errcheck
+      - go vet -vettool=`which statictest` ./...
+
+  build:
+    desc: "Build bin files"
+    deps: [ lint, ]
+    cmd: go build -v -o "{{.BIN_PATH}}" "{{.BIN_DIR}}/main.go"
+
+  run:
+    desc: "Run server"
+    deps: [ build, ]
+    cmd: "./{{.BIN_PATH}} -d {{.DB_URI}} -l debug"
+
+  test:
+    desc: "Run tests"
+    deps: [ lint, ]
+    cmd: go test -count 1 ./internal/...
+
+  final-test:
+    desc: "Run final test from CI/CD"
+    deps: [ test, build, ]
+    cmds:
+      - |
+        ./gophermarttest \
+        -test.v \
+        -test.run=^TestGophermart$ \
+        -gophermart-binary-path=./cmd/gophermart/main \
+        -gophermart-host=localhost \
+        -gophermart-port=8000 \
+        -gophermart-database-uri=postgres://postgres:password@localhost:5432/gophermart \
+        -accrual-binary-path=cmd/accrual/accrual_darwin_arm64 \
+        -accrual-host=localhost \
+        -accrual-port=$(random-practicum unused-port) \
+        -accrual-database-uri=postgres://postgres:password@localhost:5432/gophermart
+
+  # DATABASE
+  db-create:
+    desc: "Create DB"
+    cmds:
+      - echo Creating database {{.DB_NAME}}...
+      - PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -d postgres -c "CREATE DATABASE {{.DB_NAME}};"
+  
+  db-migrate:
+    desc: "Run migrations"
+    cmds:
+      - |
+        echo "Running migrations..."
+        for file in ./migrations/*_*.sql; do \
+        echo "Applying $file..."; \
+        PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -d {{.DB_NAME}} -f $file; \
+        done
+
+  db-reset:
+    desc: "Reset database (drop + create + migrate)"
+    cmds:
+      - echo "Resetting database {{.DB_NAME}}..."
+      - PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -c "DROP DATABASE IF EXISTS {{.DB_NAME}};" || true
+      - task db-create
+      - task db-migrate
