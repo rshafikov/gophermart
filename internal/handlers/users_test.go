@@ -28,9 +28,10 @@ func TestUserHandler_Register(t *testing.T) {
 	defer ts.Close()
 
 	type want struct {
-		code        int
-		response    string
-		contentType string
+		code     int
+		response string
+		cType    string
+		token    string
 	}
 
 	tests := []struct {
@@ -40,13 +41,25 @@ func TestUserHandler_Register(t *testing.T) {
 		want want
 	}{
 		{
-			name: "register a user",
+			name: "register user_1:password",
 			url:  apiUserRegisterPath,
 			body: `{"login":"user_1","password":"password"}`,
 			want: want{
-				code:        http.StatusOK,
-				response:    `{"token":"fake-token user_1","token_type":"Bearer"}`,
-				contentType: "application/json; charset=utf-8",
+				code:     http.StatusOK,
+				response: "",
+				cType:    "",
+				token:    `Bearer fake-token user_1`,
+			},
+		},
+		{
+			name: "register a user_2:Zz123456!1",
+			url:  apiUserRegisterPath,
+			body: `{"login":"user_2","password":"Zz123456!1"}`,
+			want: want{
+				code:     http.StatusOK,
+				response: "",
+				cType:    "",
+				token:    `Bearer fake-token user_2`,
 			},
 		},
 		{
@@ -54,9 +67,10 @@ func TestUserHandler_Register(t *testing.T) {
 			url:  apiUserRegisterPath,
 			body: `{"login":"user_1","password":"password"}`,
 			want: want{
-				code:        http.StatusConflict,
-				response:    `login is not available`,
-				contentType: "text/plain; charset=utf-8",
+				code:     http.StatusConflict,
+				response: `login is not available`,
+				cType:    "text/plain; charset=utf-8",
+				token:    "",
 			},
 		},
 		{
@@ -64,9 +78,10 @@ func TestUserHandler_Register(t *testing.T) {
 			url:  apiUserRegisterPath,
 			body: `{"login":"","password":"password"}`,
 			want: want{
-				code:        http.StatusBadRequest,
-				response:    `invalid login`,
-				contentType: "text/plain; charset=utf-8",
+				code:     http.StatusBadRequest,
+				response: `invalid login`,
+				cType:    "text/plain; charset=utf-8",
+				token:    "",
 			},
 		},
 		{
@@ -74,9 +89,10 @@ func TestUserHandler_Register(t *testing.T) {
 			url:  apiUserRegisterPath,
 			body: `{"password":"password"}`,
 			want: want{
-				code:        http.StatusBadRequest,
-				response:    `invalid login`,
-				contentType: "text/plain; charset=utf-8",
+				code:     http.StatusBadRequest,
+				response: `invalid login`,
+				cType:    "text/plain; charset=utf-8",
+				token:    "",
 			},
 		},
 		{
@@ -84,9 +100,10 @@ func TestUserHandler_Register(t *testing.T) {
 			url:  apiUserRegisterPath,
 			body: `{"login":"login"}`,
 			want: want{
-				code:        http.StatusBadRequest,
-				response:    `invalid password`,
-				contentType: "text/plain; charset=utf-8",
+				code:     http.StatusBadRequest,
+				response: `too short password`,
+				cType:    "text/plain; charset=utf-8",
+				token:    "",
 			},
 		},
 	}
@@ -96,12 +113,13 @@ func TestUserHandler_Register(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			response, body := client.JSONRequest(t, http.MethodPost, test.url, test.body)
-			defer response.Body.Close()
+			resp, b := client.JSONRequest(t, http.MethodPost, test.url, test.body)
+			defer resp.Body.Close()
 
-			assert.Equal(t, test.want.code, response.StatusCode)
-			assert.Equal(t, test.want.response, strings.Trim(body, "\n"))
-			assert.Equal(t, test.want.contentType, response.Header.Get("Content-Type"))
+			assert.Equal(t, test.want.code, resp.StatusCode)
+			assert.Equal(t, test.want.cType, resp.Header.Get("Content-Type"))
+			assert.Equal(t, test.want.response, strings.Trim(b, "\n"))
+			assert.Equal(t, test.want.token, resp.Header.Get("Authorization"))
 		})
 	}
 
@@ -144,7 +162,7 @@ func TestUserHandler_Login(t *testing.T) {
 			body: `{"login":"user_1","password":"password1"}`,
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"token":"fake-token user_1","token_type":"Bearer"}`,
+				response:    `{"token":"fake-token user_1","token_type":"Bearer","expires_at":"0001-01-01T00:00:00Z"}`,
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -154,7 +172,7 @@ func TestUserHandler_Login(t *testing.T) {
 			body: `{"login":"user_1","password":"password1"}`,
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"token":"fake-token user_1","token_type":"Bearer"}`,
+				response:    `{"token":"fake-token user_1","token_type":"Bearer","expires_at":"0001-01-01T00:00:00Z"}`,
 				contentType: "application/json; charset=utf-8",
 			},
 		},
@@ -164,7 +182,7 @@ func TestUserHandler_Login(t *testing.T) {
 			body: `{"login":"user_2","password":"password2"}`,
 			want: want{
 				code:        http.StatusOK,
-				response:    `{"token":"fake-token user_2","token_type":"Bearer"}`,
+				response:    `{"token":"fake-token user_2","token_type":"Bearer","expires_at":"0001-01-01T00:00:00Z"}`,
 				contentType: "application/json; charset=utf-8",
 			},
 		},

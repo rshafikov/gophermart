@@ -18,8 +18,9 @@ var ErrTokenInvalid = errors.New("token is invalid")
 var ErrUnableToParseToken = errors.New("unable to parse token")
 
 type JWTToken struct {
-	Token     string `json:"token"`
-	TokenType string `json:"token_type"`
+	Token     string    `json:"token"`
+	TokenType string    `json:"token_type"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 type TokenPayload struct {
@@ -38,9 +39,10 @@ func NewJWTHandler() JWTHandler {
 }
 
 func (j *jwtHandler) GenerateJWT(login string) (*JWTToken, error) {
+	expires := jwt.NewNumericDate(time.Now().Add(TokenExpTime))
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, TokenPayload{
 		RegisteredClaims: jwt.RegisteredClaims{
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TokenExpTime)),
+			ExpiresAt: expires,
 			Subject:   login,
 		},
 	})
@@ -50,7 +52,7 @@ func (j *jwtHandler) GenerateJWT(login string) (*JWTToken, error) {
 		return nil, err
 	}
 
-	return &JWTToken{Token: tokenString, TokenType: TokenType}, nil
+	return &JWTToken{Token: tokenString, TokenType: TokenType, ExpiresAt: expires.Time}, nil
 }
 
 func (j *jwtHandler) ParseJWT(tokenString string) (*TokenPayload, error) {

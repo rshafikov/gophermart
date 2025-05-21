@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/rshafikov/gophermart/internal/core/contextkeys"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/core/security"
@@ -49,26 +50,15 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.JWT.GenerateJWT(reqUser.Login)
+	jwt, err := h.JWT.GenerateJWT(reqUser.Login)
 	if err != nil {
 		logger.L.Debug("unable to generate JWT", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	tokenBytes, err := json.Marshal(token)
-	if err != nil {
-		logger.L.Debug("unable to encode JWT", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	_, err = w.Write(tokenBytes)
-	if err != nil {
-		logger.L.Debug("unable to write JWT", zap.Error(err))
-		return
-	}
+	w.Header().Set("Authorization", fmt.Sprintf("%s %s", jwt.TokenType, jwt.Token))
+	w.WriteHeader(http.StatusOK)
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
@@ -87,14 +77,14 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := h.JWT.GenerateJWT(user.Login)
+	jwt, err := h.JWT.GenerateJWT(user.Login)
 	if err != nil {
 		logger.L.Debug("unable to generate JWT", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	tokenBytes, err := json.Marshal(token)
+	tokenBytes, err := json.Marshal(jwt)
 	if err != nil {
 		logger.L.Debug("unable to encode JWT", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -102,6 +92,7 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Authorization", fmt.Sprintf("%s %s", jwt.TokenType, jwt.Token))
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(tokenBytes)
 	if err != nil {
@@ -115,7 +106,7 @@ func (h *UserHandler) ValidateUserCredentials(login string, password string) err
 		return errors.New("invalid login")
 	}
 	if !security.IsPasswordValid(password) {
-		return errors.New("invalid password")
+		return errors.New("too short password")
 	}
 	return nil
 }
