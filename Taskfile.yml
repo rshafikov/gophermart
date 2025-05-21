@@ -9,10 +9,12 @@ dotenv: [ ".env", ]
 
 tasks:
   # BASE TASKS
-  test:
-    desc: "Run tests"
-    deps: [ lint, ]
-    cmd: go test ./internal/...
+  lint:
+    desc: "Run linter"
+    run: once
+    cmds:
+      - golangci-lint run -D errcheck
+      - go vet -vettool=`which statictest` ./...
 
   build:
     desc: "Build bin files"
@@ -24,12 +26,27 @@ tasks:
     deps: [ build, ]
     cmd: "./{{.BIN_PATH}} -d {{.DB_URI}} -l debug"
 
-  lint:
-    desc: "Run linter"
-    run: once
+  test:
+    desc: "Run tests"
+    deps: [ lint, ]
+    cmd: go test -count 1 ./internal/...
+
+  final-test:
+    desc: "Run final test from CI/CD"
+    deps: [ test, build, ]
     cmds:
-      - golangci-lint run -D errcheck
-      - go vet -vettool=`which statictest` ./...
+      - |
+        ./gophermarttest \
+        -test.v \
+        -test.run=^TestGophermart$ \
+        -gophermart-binary-path=./cmd/gophermart/main \
+        -gophermart-host=localhost \
+        -gophermart-port=8000 \
+        -gophermart-database-uri=postgres://postgres:password@localhost:5432/gophermart \
+        -accrual-binary-path=cmd/accrual/accrual_darwin_arm64 \
+        -accrual-host=localhost \
+        -accrual-port=$(random-practicum unused-port) \
+        -accrual-database-uri=postgres://postgres:password@localhost:5432/gophermart
 
   # DATABASE
   db-create:

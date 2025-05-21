@@ -8,7 +8,7 @@ import (
 type envParams struct {
 	RunAddress     string `env:"RUN_ADDRESS"`
 	LogLevel       string `env:"LOG_LEVEL"`
-	DatabaseURI    string `env:"DB_URI"`
+	DatabaseURI    string `env:"DATABASE_URI"`
 	AccrualAddress string `env:"ACCRUAL_SYSTEM_ADDRESS"`
 	Secret         string `env:"SECRET"`
 }
