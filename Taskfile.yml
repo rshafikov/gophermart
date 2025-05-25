@@ -26,6 +26,10 @@ tasks:
     deps: [ build, ]
     cmd: "./{{.BIN_PATH}} -d {{.DB_URI}} -l debug"
 
+  coverage:
+    desc: "Get test coverage"
+    cmd: go test -cover ./internal/...
+
   test:
     desc: "Run tests"
     deps: [ lint, ]
@@ -51,9 +55,7 @@ tasks:
   # DATABASE
   db-create:
     desc: "Create DB"
-    cmds:
-      - echo Creating database {{.DB_NAME}}...
-      - PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -d postgres -c "CREATE DATABASE {{.DB_NAME}};"
+    cmd: PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -d postgres -c "CREATE DATABASE {{.DB_NAME}};"
   
   db-migrate:
     desc: "Run migrations"
@@ -69,6 +71,10 @@ tasks:
     desc: "Reset database (drop + create + migrate)"
     cmds:
       - echo "Resetting database {{.DB_NAME}}..."
-      - PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -c "DROP DATABASE IF EXISTS {{.DB_NAME}};" || true
+      - task db-drop
       - task db-create
       - task db-migrate
+
+  db-drop:
+    desc: "Drop whole database"
+    cmd: PGPASSWORD={{.DB_PASSWORD}} psql-17 -h {{.DB_HOST}} -p {{.DB_PORT}} -U {{.DB_USER}} -c "DROP DATABASE IF EXISTS {{.DB_NAME}};" || true

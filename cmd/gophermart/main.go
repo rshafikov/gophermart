@@ -22,8 +22,10 @@ func main() {
 
 	jwtHanlder := security.NewJWTHandler()
 	userRepository := repository.NewUserRepository(Application.DB.Pool)
+	orderRepository := repository.NewOrderRepository(Application.DB.Pool)
 	userService := service.NewUserService(userRepository)
-	mainRouter := router.NewRouter(userService, jwtHanlder)
+	orderService := service.NewOrderService(orderRepository)
+	mainRouter := router.NewRouter(userService, orderService, jwtHanlder)
 	r := chi.NewRouter()
 	r.Mount("/", mainRouter.Routes())
 
