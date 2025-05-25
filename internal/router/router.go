@@ -11,12 +11,13 @@ import (
 )
 
 type Router struct {
-	UserService *service.UserService
-	JWT         security.JWTHandler
+	UserService  *service.UserService
+	OrderService *service.OrderService
+	JWT          security.JWTHandler
 }
 
-func NewRouter(userService *service.UserService, jwtService security.JWTHandler) *Router {
-	return &Router{UserService: userService, JWT: jwtService}
+func NewRouter(u *service.UserService, o *service.OrderService, jwt security.JWTHandler) *Router {
+	return &Router{UserService: u, OrderService: o, JWT: jwt}
 }
 
 func (mr *Router) Routes() chi.Router {
@@ -26,6 +27,7 @@ func (mr *Router) Routes() chi.Router {
 	r.Use(middleware.Recoverer)
 
 	userHandler := handlers.NewUserHandler(mr.UserService, mr.JWT)
+	orderHandler := handlers.NewOrderHandler(mr.OrderService)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/user", func(r chi.Router) {
@@ -33,8 +35,8 @@ func (mr *Router) Routes() chi.Router {
 			r.Post("/login", userHandler.Login)
 			r.Group(func(r chi.Router) {
 				r.Use(middlewares.Authenticater(mr.JWT, mr.UserService))
-				r.Post("/orders", userHandler.CreateOrder)
-				r.Get("/orders", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+				r.Post("/orders", orderHandler.CreateOrder)
+				r.Get("/orders", orderHandler.GetOrders)
 				r.Get("/balance", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 				r.Post("/balance/withdraw", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 				r.Get("/withdrawals", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))

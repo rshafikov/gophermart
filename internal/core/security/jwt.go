@@ -7,7 +7,6 @@ import (
 	"github.com/rshafikov/gophermart/internal/app"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"go.uber.org/zap"
-	"strings"
 	"time"
 )
 
@@ -76,19 +75,4 @@ func (j *jwtHandler) ParseJWT(tokenString string) (*TokenPayload, error) {
 	}
 
 	return claims, nil
-}
-
-type MockJWTHandler struct{}
-
-func (m *MockJWTHandler) GenerateJWT(login string) (*JWTToken, error) {
-	return &JWTToken{Token: "fake-token " + login, TokenType: TokenType}, nil
-}
-
-func (m *MockJWTHandler) ParseJWT(token string) (*TokenPayload, error) {
-	splitedToken := strings.Split(token, "fake-token ")
-	if len(splitedToken) != 2 || splitedToken[0] != "" {
-		return nil, ErrTokenInvalid
-	}
-
-	return &TokenPayload{jwt.RegisteredClaims{Subject: splitedToken[1]}}, nil
 }
