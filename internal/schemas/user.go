@@ -1,6 +1,6 @@
 package schemas
 
-type UserCreate struct {
+type UserCreateRequest struct {
 	Login    string `json:"login"`
 	Password string `json:"password"`
 }

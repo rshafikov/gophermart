@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/rshafikov/gophermart/internal/core/contextkeys"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/core/security"
 	"github.com/rshafikov/gophermart/internal/models"
@@ -15,17 +14,16 @@ import (
 )
 
 type UserHandler struct {
-	UserService *service.UserService
+	UserService models.UserService
 	JWT         security.JWTHandler
 }
 
-func NewUserHandler(userService *service.UserService, jwtService security.JWTHandler) *UserHandler {
+func NewUserHandler(userService models.UserService, jwtService security.JWTHandler) *UserHandler {
 	return &UserHandler{UserService: userService, JWT: jwtService}
 }
 
 func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	var reqUser schemas.UserCreate
+	var reqUser schemas.UserCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqUser); err != nil {
 		logger.L.Debug("unable to decode request body", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusBadRequest)
@@ -38,7 +36,7 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := h.UserService.Register(ctx, reqUser.Login, reqUser.Password); err != nil {
+	if err := h.UserService.Register(r.Context(), reqUser.Login, reqUser.Password); err != nil {
 		if errors.Is(err, service.ErrUserAlreadyExists) {
 			logger.L.Debug("user already exists", zap.String("login", reqUser.Login))
 			http.Error(w, err.Error(), http.StatusConflict)
@@ -62,15 +60,14 @@ func (h *UserHandler) Register(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
-	ctx := r.Context()
-	var reqUser schemas.UserCreate
+	var reqUser schemas.UserCreateRequest
 	if err := json.NewDecoder(r.Body).Decode(&reqUser); err != nil {
 		logger.L.Debug("unable to decode request body", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	user, err := h.UserService.Login(ctx, reqUser.Login, reqUser.Password)
+	user, err := h.UserService.Login(r.Context(), reqUser.Login, reqUser.Password)
 	if err != nil {
 		logger.L.Debug("unable to login with given credentials", zap.Error(err))
 		http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -109,20 +106,4 @@ func (h *UserHandler) ValidateUserCredentials(login string, password string) err
 		return errors.New("too short password")
 	}
 	return nil
-}
-
-func (h *UserHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
-	u, ok := r.Context().Value(contextkeys.UserKey).(*models.User)
-	if !ok {
-		logger.L.Debug("user not found in context")
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
-
-	_, err := w.Write([]byte(u.Login))
-	if err != nil {
-		logger.L.Debug("unable to write response", zap.Error(err))
-		http.Error(w, "internal error", http.StatusInternalServerError)
-		return
-	}
 }

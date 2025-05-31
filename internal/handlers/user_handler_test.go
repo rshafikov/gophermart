@@ -1,14 +1,14 @@
 package handlers
 
 import (
-	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/rshafikov/gophermart/internal/core"
 	"github.com/rshafikov/gophermart/internal/core/security"
+	"github.com/rshafikov/gophermart/internal/mocks"
 	"github.com/rshafikov/gophermart/internal/models"
-	"github.com/rshafikov/gophermart/internal/repository"
 	"github.com/rshafikov/gophermart/internal/service"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/mock/gomock"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,10 +16,13 @@ import (
 )
 
 func TestUserHandler_Register(t *testing.T) {
-	userRepo := repository.NewMockUserRepository()
-	userServce := service.NewUserService(userRepo)
-	jwtHanlder := &security.MockJWTHandler{}
-	handler := NewUserHandler(userServce, jwtHanlder)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUserService := mocks.NewMockUserService(ctrl)
+	mockJWTHandler := mocks.NewMockJWTHandler(ctrl)
+
+	handler := NewUserHandler(mockUserService, mockJWTHandler)
 	apiUserRegisterPath := "/api/user/register"
 
 	r := chi.NewRouter()
@@ -35,10 +38,11 @@ func TestUserHandler_Register(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-		url  string
-		body string
-		want want
+		name       string
+		url        string
+		body       string
+		want       want
+		setupMocks func()
 	}{
 		{
 			name: "register user_1:password",
@@ -48,7 +52,11 @@ func TestUserHandler_Register(t *testing.T) {
 				code:     http.StatusOK,
 				response: "",
 				cType:    "",
-				token:    `Bearer fake-token user_1`,
+				token:    `fake-token user_1`,
+			},
+			setupMocks: func() {
+				mockUserService.EXPECT().Register(gomock.Any(), "user_1", "password").Return(nil)
+				mockJWTHandler.EXPECT().GenerateJWT("user_1").Return(&security.JWTToken{Token: "fake-token user_1"}, nil)
 			},
 		},
 		{
@@ -59,7 +67,11 @@ func TestUserHandler_Register(t *testing.T) {
 				code:     http.StatusOK,
 				response: "",
 				cType:    "",
-				token:    `Bearer fake-token user_2`,
+				token:    `fake-token user_2`,
+			},
+			setupMocks: func() {
+				mockUserService.EXPECT().Register(gomock.Any(), "user_2", "Zz123456!1").Return(nil)
+				mockJWTHandler.EXPECT().GenerateJWT("user_2").Return(&security.JWTToken{Token: "fake-token user_2"}, nil)
 			},
 		},
 		{
@@ -71,6 +83,9 @@ func TestUserHandler_Register(t *testing.T) {
 				response: `login is not available`,
 				cType:    "text/plain; charset=utf-8",
 				token:    "",
+			},
+			setupMocks: func() {
+				mockUserService.EXPECT().Register(gomock.Any(), "user_1", "password").Return(service.ErrUserAlreadyExists)
 			},
 		},
 		{
@@ -113,6 +128,10 @@ func TestUserHandler_Register(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			if test.setupMocks != nil {
+				test.setupMocks()
+			}
+
 			resp, b := client.JSONRequest(t, http.MethodPost, test.url, test.body)
 			defer resp.Body.Close()
 
@@ -126,10 +145,12 @@ func TestUserHandler_Register(t *testing.T) {
 }
 
 func TestUserHandler_Login(t *testing.T) {
-	userRepo := repository.NewMockUserRepository()
-	userServce := service.NewUserService(userRepo)
-	jwtHanlder := &security.MockJWTHandler{}
-	handler := NewUserHandler(userServce, jwtHanlder)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUserService := mocks.NewMockUserService(ctrl)
+	mockJWTHandler := mocks.NewMockJWTHandler(ctrl)
+	handler := NewUserHandler(mockUserService, mockJWTHandler)
 	apiUserLoginPath := "/api/user/login"
 
 	r := chi.NewRouter()
@@ -139,10 +160,6 @@ func TestUserHandler_Login(t *testing.T) {
 
 	testUser1 := models.User{Login: "user_1", Password: "password1"}
 	testUser2 := models.User{Login: "user_2", Password: "password2"}
-	ctx := context.TODO()
-
-	_ = userRepo.CreateUser(ctx, &testUser1)
-	_ = userRepo.CreateUser(ctx, &testUser2)
 
 	type want struct {
 		code        int
@@ -151,10 +168,11 @@ func TestUserHandler_Login(t *testing.T) {
 	}
 
 	tests := []struct {
-		name string
-		url  string
-		body string
-		want want
+		name       string
+		url        string
+		body       string
+		want       want
+		setupMocks func()
 	}{
 		{
 			name: "login user1",
@@ -164,6 +182,13 @@ func TestUserHandler_Login(t *testing.T) {
 				code:        http.StatusOK,
 				response:    `{"token":"fake-token user_1","token_type":"Bearer","expires_at":"0001-01-01T00:00:00Z"}`,
 				contentType: "application/json; charset=utf-8",
+			},
+			setupMocks: func() {
+				mockUserService.EXPECT().Login(gomock.Any(), "user_1", "password1").Return(&testUser1, nil)
+				mockJWTHandler.EXPECT().GenerateJWT("user_1").Return(
+					&security.JWTToken{Token: "fake-token user_1", TokenType: security.TokenType},
+					nil,
+				)
 			},
 		},
 		{
@@ -175,6 +200,13 @@ func TestUserHandler_Login(t *testing.T) {
 				response:    `{"token":"fake-token user_1","token_type":"Bearer","expires_at":"0001-01-01T00:00:00Z"}`,
 				contentType: "application/json; charset=utf-8",
 			},
+			setupMocks: func() {
+				mockUserService.EXPECT().Login(gomock.Any(), "user_1", "password1").Return(&testUser1, nil)
+				mockJWTHandler.EXPECT().GenerateJWT("user_1").Return(
+					&security.JWTToken{Token: "fake-token user_1", TokenType: security.TokenType},
+					nil,
+				)
+			},
 		},
 		{
 			name: "login another user",
@@ -184,6 +216,11 @@ func TestUserHandler_Login(t *testing.T) {
 				code:        http.StatusOK,
 				response:    `{"token":"fake-token user_2","token_type":"Bearer","expires_at":"0001-01-01T00:00:00Z"}`,
 				contentType: "application/json; charset=utf-8",
+			},
+			setupMocks: func() {
+				mockUserService.EXPECT().Login(gomock.Any(), "user_2", "password2").Return(&testUser2, nil)
+				mockJWTHandler.EXPECT().GenerateJWT("user_2").Return(
+					&security.JWTToken{Token: "fake-token user_2", TokenType: security.TokenType}, nil)
 			},
 		},
 		{
@@ -195,6 +232,9 @@ func TestUserHandler_Login(t *testing.T) {
 				response:    `password mismatch`,
 				contentType: "text/plain; charset=utf-8",
 			},
+			setupMocks: func() {
+				mockUserService.EXPECT().Login(gomock.Any(), "user_1", "password").Return(nil, service.ErrPasswordMismatch)
+			},
 		},
 	}
 
@@ -203,6 +243,9 @@ func TestUserHandler_Login(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			if test.setupMocks != nil {
+				test.setupMocks()
+			}
 			response, body := client.JSONRequest(t, http.MethodPost, test.url, test.body)
 			defer response.Body.Close()
 

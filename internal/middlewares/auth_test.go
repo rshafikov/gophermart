@@ -1,17 +1,18 @@
 package middlewares
 
 import (
-	"context"
 	"github.com/go-chi/chi/v5"
+	"github.com/golang-jwt/jwt/v4"
 	"github.com/rshafikov/gophermart/internal/core"
 	"github.com/rshafikov/gophermart/internal/core/contextkeys"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/core/security"
+	"github.com/rshafikov/gophermart/internal/mocks"
 	"github.com/rshafikov/gophermart/internal/models"
-	"github.com/rshafikov/gophermart/internal/repository"
 	"github.com/rshafikov/gophermart/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -35,13 +36,14 @@ func testHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func TestAuthenticater(t *testing.T) {
-	userService := service.NewUserService(repository.NewMockUserRepository())
-	jwtHandler := &security.MockJWTHandler{}
-	authMW := Authenticater(jwtHandler, userService)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockUserService := mocks.NewMockUserService(ctrl)
+	mockJWTHandler := mocks.NewMockJWTHandler(ctrl)
+	authMW := Authenticater(mockJWTHandler, mockUserService)
 
 	testUser := models.User{Login: "user_1", Password: "password"}
-	err := userService.Register(context.TODO(), testUser.Login, testUser.Password)
-	require.NoError(t, err)
 
 	r := chi.NewRouter()
 	r.Use(authMW)
@@ -55,9 +57,10 @@ func TestAuthenticater(t *testing.T) {
 	}
 
 	tests := []struct {
-		name  string
-		want  want
-		token string
+		name       string
+		want       want
+		token      string
+		setupMocks func()
 	}{
 		{
 			name:  "test with valid token",
@@ -65,6 +68,11 @@ func TestAuthenticater(t *testing.T) {
 			want: want{
 				code:     http.StatusOK,
 				response: "user_1",
+			},
+			setupMocks: func() {
+				mockJWTHandler.EXPECT().ParseJWT("fake-token user_1").Return(
+					&security.TokenPayload{RegisteredClaims: jwt.RegisteredClaims{Subject: "user_1"}}, nil)
+				mockUserService.EXPECT().GetByLogin(gomock.Any(), "user_1").Return(&testUser, nil)
 			},
 		},
 		{
@@ -74,6 +82,23 @@ func TestAuthenticater(t *testing.T) {
 				code:     http.StatusUnauthorized,
 				response: "unauthorized",
 			},
+			setupMocks: func() {
+				mockJWTHandler.EXPECT().ParseJWT("wrong-fake-token user_1").Return(
+					&security.TokenPayload{}, security.ErrTokenInvalid)
+			},
+		},
+		{
+			name:  "test token when user not found",
+			token: "fake-token user_1",
+			want: want{
+				code:     http.StatusUnauthorized,
+				response: "unauthorized",
+			},
+			setupMocks: func() {
+				mockJWTHandler.EXPECT().ParseJWT("fake-token user_1").Return(
+					&security.TokenPayload{RegisteredClaims: jwt.RegisteredClaims{Subject: "user_1"}}, nil)
+				mockUserService.EXPECT().GetByLogin(gomock.Any(), "user_1").Return(nil, service.ErrUserNotFound)
+			},
 		},
 	}
 
@@ -81,6 +106,10 @@ func TestAuthenticater(t *testing.T) {
 	c := core.NewHTTPClient(ts.URL, notCompress)
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+			if test.setupMocks != nil {
+				test.setupMocks()
+			}
+
 			req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 			require.NoError(t, err)
 
@@ -96,4 +125,15 @@ func TestAuthenticater(t *testing.T) {
 			assert.Equal(t, test.want.response, strings.Trim(string(body), "\n"))
 		})
 	}
+
+	t.Run("test with empty Authorization header", func(t *testing.T) {
+		req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
+		require.NoError(t, err)
+
+		resp, err := c.Client.Do(req)
+		require.NoError(t, err)
+		defer resp.Body.Close()
+
+		assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+	})
 }
