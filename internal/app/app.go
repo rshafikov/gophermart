@@ -3,13 +3,15 @@ package app
 import (
 	"context"
 	"errors"
+	"github.com/golang-migrate/migrate/v4"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/database"
 	"go.uber.org/zap"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -29,29 +31,47 @@ func NewApplication(cfg defaultConfig) *Application {
 	}
 }
 
-func (app *Application) ConnectToDatabase(ctx context.Context) error {
+func (app *Application) ConnectToDatabase(ctx context.Context) {
 	dsn := app.Config.DB.URI
 	_, err := pgx.Connect(ctx, dsn)
 	if err != nil {
 		var pgErr *pgconn.ConnectError
 		if errors.As(err, &pgErr) {
-			logger.L.Debug("unable to connect to database", zap.String("DB_URI", dsn))
-			return database.ErrConnectDB
+			logger.L.Fatal("unable to connect to database", zap.String("DB_URI", dsn))
+
 		}
-		return err
+		logger.L.Fatal("unable to set up database connection", zap.Error(err))
 	}
 
 	app.DB.Pool, err = pgxpool.New(ctx, dsn)
 	if err != nil {
-		return err
+		logger.L.Fatal("unable to set create DB connection pool", zap.Error(err))
 	}
 
 	err = app.DB.Pool.Ping(ctx)
 	if err != nil {
-		return err
+		logger.L.Fatal("unable to ping DB", zap.Error(err))
 	}
-	log.Println("Connected to database:", dsn)
-	return nil
+	logger.L.Info("Connected to database", zap.String("DATABASE_URI", app.Config.DB.URI))
+
+}
+
+func (app *Application) MigrateDatabase(ctx context.Context) {
+	m, err := migrate.New("file://migrations", app.Config.DB.URI)
+	if err != nil {
+		logger.L.Fatal(err.Error())
+	}
+	if err = m.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			logger.L.Debug("database migrations is up to date")
+			return
+		}
+		logger.L.Fatal(err.Error())
+	}
+	v, _, err := m.Version()
+	if err == nil {
+		logger.L.Debug("database has been migrated", zap.Uint("version", v))
+	}
 }
 
 func (app *Application) RunServer(router http.Handler) {
