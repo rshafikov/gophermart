@@ -5,10 +5,10 @@ import (
 	"errors"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/rshafikov/gophermart/internal/core/security"
+	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/database/queries"
 	"github.com/rshafikov/gophermart/internal/models"
-	"log"
+	"go.uber.org/zap"
 )
 
 type UserRepository struct {
@@ -22,10 +22,10 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 func (r *UserRepository) CreateUser(ctx context.Context, user *models.User) error {
 	exec, err := r.Pool.Exec(ctx, queries.CreateUser, user.Login, user.Password)
 	if err != nil {
-		log.Println("unable to CREATE user:", err)
+		logger.L.Debug("unable to CREATE user", zap.Error(err))
 		return err
 	}
-	log.Println("rows affected: ", exec.RowsAffected())
+	logger.L.Debug("rows affected", zap.Int64("rows", exec.RowsAffected()))
 	return nil
 }
 
@@ -36,37 +36,11 @@ func (r *UserRepository) GetByLogin(ctx context.Context, login string) (*models.
 	err := q.Scan(&user.ID, &user.Login, &user.Password, &user.CreatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			log.Printf("there is no user with login '%s'", login)
+			logger.L.Debug("there is no user with this login", zap.String("login", login))
 			return nil, err
 		}
-		log.Println("unable to GET user, unknown error:", err)
+		logger.L.Debug("unable to GET user, unknown error", zap.Error(err))
 		return nil, err
 	}
 	return &user, nil
-}
-
-type MockUserRepository struct {
-	DB map[string]*models.User
-}
-
-func NewMockUserRepository() models.UserRepository {
-	return &MockUserRepository{DB: make(map[string]*models.User)}
-}
-
-func (m *MockUserRepository) CreateUser(ctx context.Context, user *models.User) error {
-	user.Password, _ = security.HashPassword(user.Password)
-	m.DB[user.Login] = user
-	return nil
-}
-
-func (m *MockUserRepository) GetByLogin(ctx context.Context, login string) (*models.User, error) {
-	user, ok := m.DB[login]
-	if !ok {
-		return nil, errors.New("user not found")
-	}
-	return user, nil
-}
-
-func (m *MockUserRepository) Clear() {
-	m.DB = make(map[string]*models.User)
 }

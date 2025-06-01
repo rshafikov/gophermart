@@ -19,7 +19,7 @@ func TestHashPassword(t *testing.T) {
 		{
 			name:        "Empty password",
 			password:    "",
-			expectError: false, // bcrypt allows empty passwords
+			expectError: false,
 		},
 		{
 			name:        "Short password",
