@@ -41,9 +41,9 @@ func InitConfig() {
 	}
 
 	if Env.DatabaseURI != "" {
-		err := Config.DB.Set(Env.DatabaseURI)
+		err = Config.DB.Set(Env.DatabaseURI)
 		if err != nil {
-			log.Fatal("unable to parse DATABASE_URI environment variable: ", Env.DatabaseURI)
+			log.Fatalf("unable to parse DATABASE_URI '%s': %s", Env.DatabaseURI, err)
 		}
 	}
 

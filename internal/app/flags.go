@@ -12,6 +12,7 @@ const (
 	defaultServerHost = "localhost"
 	defaultServerPort = "8080"
 	defaultLogLevel   = "info"
+	defaultDBPort     = "5432"
 )
 
 type dbSettings struct {
@@ -65,10 +66,12 @@ func (d *dbSettings) Set(s string) error {
 
 	colonIndex := strings.LastIndex(hostPort, ":")
 	if colonIndex == -1 {
-		return errors.New("invalid url: missing ':' in host:port")
+		d.Port = defaultDBPort
+		d.Host = hostPort
+	} else {
+		d.Port = hostPort[colonIndex+1:]
+		d.Host = hostPort[:colonIndex]
 	}
-	d.Host = hostPort[:colonIndex]
-	d.Port = hostPort[colonIndex+1:]
 
 	return nil
 }
