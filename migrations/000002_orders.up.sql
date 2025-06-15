@@ -3,10 +3,10 @@ CREATE TYPE order_status AS ENUM ('NEW', 'PROCESSING', 'INVALID', 'PROCESSED');
 CREATE TABLE IF NOT EXISTS orders
 (
     id         SERIAL PRIMARY KEY,
-    numeral_id TEXT         NOT NULL UNIQUE,
-    user_id    INTEGER      NOT NULL,
-    status     order_status NOT NULL,
-    accrual    INTEGER,
+    numeral_id TEXT           NOT NULL UNIQUE,
+    user_id    INTEGER        NOT NULL,
+    status     order_status   NOT NULL,
+    accrual    DECIMAL(15, 2),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE

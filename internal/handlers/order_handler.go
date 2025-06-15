@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/rshafikov/gophermart/internal/client"
 	"github.com/rshafikov/gophermart/internal/core/contextkeys"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/core/security"
@@ -16,10 +17,11 @@ import (
 
 type OrderHandler struct {
 	Service *service.OrderService
+	Client  client.Client
 }
 
-func NewOrderHandler(orderService *service.OrderService) *OrderHandler {
-	return &OrderHandler{Service: orderService}
+func NewOrderHandler(orderService *service.OrderService, client client.Client) *OrderHandler {
+	return &OrderHandler{Service: orderService, Client: client}
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -112,6 +114,6 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
 	if err != nil {
-		logger.L.Error("failed to write orders", zap.Error(err))
+		logger.L.Error("failed to send orders in response", zap.Error(err))
 	}
 }
