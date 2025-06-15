@@ -5,7 +5,6 @@ import (
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"log"
 	"net"
-	"strings"
 )
 
 func InitConfig() {
@@ -27,8 +26,7 @@ func InitConfig() {
 	}
 
 	if Env.AccrualAddress != "" {
-		splitedAddr := strings.Split(Env.AccrualAddress, "://")
-		host, port, err := net.SplitHostPort(splitedAddr[1])
+		host, port, err := net.SplitHostPort(Env.AccrualAddress)
 		if err != nil {
 			log.Fatal("invalid ACCRUAL_SYSTEM_ADDRESS environment variable: ", Env.AccrualAddress)
 		}

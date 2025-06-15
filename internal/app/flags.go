@@ -9,10 +9,12 @@ import (
 )
 
 const (
-	defaultServerHost = "localhost"
-	defaultServerPort = "8080"
-	defaultLogLevel   = "info"
-	defaultDBPort     = "5432"
+	defaultServerHost  = "localhost"
+	defaultServerPort  = "8080"
+	defaultLogLevel    = "info"
+	defaultDBPort      = "5432"
+	defaultAccrualHost = "localhost"
+	defaultAccrualPort = "8000"
 )
 
 type dbSettings struct {
@@ -109,7 +111,7 @@ type defaultConfig struct {
 var Config = defaultConfig{
 	DB:             dbSettings{},
 	RunAddress:     netAddr{Host: defaultServerHost, Port: defaultServerPort},
-	AccrualAddress: netAddr{},
+	AccrualAddress: netAddr{Host: defaultAccrualHost, Port: defaultAccrualPort},
 	LogLevel:       defaultLogLevel,
 }
 

@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 )
 
-var ErrOrderNotFound = errors.New("order not found")
 var ErrOrderAlreadyLoaded = errors.New("order has already loaded")
 var ErrOrderLoadedBySomeone = errors.New("order was loaded by another user")
 
@@ -28,7 +27,7 @@ func (s *OrderService) CreateOrderIfNotExists(ctx context.Context, newOrder *mod
 	}
 
 	if sameOrder != nil && err == nil {
-		logger.L.Debug("order has been already loaded", zap.String("numeral_id", newOrder.NumeralID))
+		logger.L.Error("order has been already loaded", zap.String("numeral_id", newOrder.NumeralID))
 		if sameOrder.UserID == newOrder.UserID {
 			return ErrOrderAlreadyLoaded
 		}

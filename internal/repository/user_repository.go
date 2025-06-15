@@ -20,12 +20,30 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 }
 
 func (r *UserRepository) CreateUser(ctx context.Context, user *models.User) error {
-	exec, err := r.Pool.Exec(ctx, queries.CreateUser, user.Login, user.Password)
+	tx, err := r.Pool.Begin(ctx)
 	if err != nil {
-		logger.L.Debug("unable to CREATE user", zap.Error(err))
+		logger.L.Debug("error starting transaction", zap.Error(err))
 		return err
 	}
-	logger.L.Debug("rows affected", zap.Int64("rows", exec.RowsAffected()))
+	defer func() {
+		if err != nil {
+			tx.Rollback(ctx)
+			return
+		}
+		err = tx.Commit(ctx)
+	}()
+
+	var userID int
+	err = tx.QueryRow(ctx, queries.CreateUser, user.Login, user.Password).Scan(&userID)
+	if err != nil {
+		logger.L.Debug("unable to create user", zap.Error(err))
+		return err
+	}
+	_, err = tx.Exec(ctx, queries.CreateBalance, userID)
+	if err != nil {
+		logger.L.Debug("unable to create balance for user", zap.Error(err), zap.Int("id", userID))
+		return err
+	}
 	return nil
 }
 
