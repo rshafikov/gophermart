@@ -78,24 +78,11 @@ func (r *TxRepository) GetManyWithFilter(ctx context.Context, f *models.TxFilter
 	return txs, nil
 }
 
-//
-//func (r *TxRepository) GetManyWithOrderNumeralID(ctx context.Context, userID int) ([]*models.Tx, error) {
-//	q, err := r.Pool.Query(ctx, queries.GetTxsAndOrderNumberByUserID, userID)
-//	if err != nil {
-//		logger.L.Error("unable to get orders", zap.Error(err))
-//		return nil, err
-//	}
-//	defer q.Close()
-//
-//	var txs []*models.Tx
-//	for q.Next() {
-//		var t models.Tx
-//		err = q.Scan(&t.ID, &t.UserID, &t.BalanceID, &t.OrderID, &t.Amount, &t.CreatedAt, &t.OrderNumeralID)
-//		if err != nil {
-//			logger.L.Error("failed to scan a tx", zap.Error(err))
-//			return nil, err
-//		}
-//		txs = append(txs, &t)
-//	}
-//	return txs, nil
-//}
+func (r *TxRepository) CreateOne(ctx context.Context, tx *models.Tx) error {
+	_, err := r.Pool.Exec(ctx, queries.CreateTx, tx.UserID, tx.BalanceID, tx.OrderNumeralID, tx.Amount, tx.CreatedAt)
+	if err != nil {
+		logger.L.Error("unable to create transaction", zap.Reflect("tx", tx), zap.Error(err))
+		return err
+	}
+	return nil
+}

@@ -35,5 +35,6 @@ func (r *BalanceRepository) GetOneByUserID(ctx context.Context, userID int) (*mo
 }
 
 func (r *BalanceRepository) UpdateOne(ctx context.Context, balance *models.Balance) error {
-	return nil
+	_, err := r.Pool.Exec(ctx, queries.UpdateBalance, balance.Current, balance.ID)
+	return err
 }
