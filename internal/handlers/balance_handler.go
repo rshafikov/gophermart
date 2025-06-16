@@ -44,7 +44,6 @@ func (h *BalanceHandler) GetUserBalance(w http.ResponseWriter, r *http.Request) 
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
 	if err != nil {
 		logger.L.Error("failed to send balance in response", zap.Error(err))
@@ -134,10 +133,9 @@ func (h *BalanceHandler) GetUserWithdrawals(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if len(txs) > 0 {
-		w.WriteHeader(http.StatusOK)
-	} else {
+	if len(txs) == 0 {
 		w.WriteHeader(http.StatusNoContent)
+		return
 	}
 
 	_, err = w.Write(resp)

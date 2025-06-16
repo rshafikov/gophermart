@@ -39,6 +39,7 @@ func (mr *Router) Routes() chi.Router {
 	r.Use(middlewares.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Compress(5, "application/json", "text/plain"))
+	r.Use(middleware.SetHeader("Content-Type", "application/json"))
 
 	userHandler := handlers.NewUserHandler(mr.UserService, mr.JWT)
 	orderHandler := handlers.NewOrderHandler(mr.OrderService, mr.AccrualClient)

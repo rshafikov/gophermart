@@ -114,15 +114,21 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.L.Error("failed to get orders", zap.Error(err))
 		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
+		return
+	}
+
+	if len(orders) == 0 {
+		w.WriteHeader(http.StatusNoContent)
+		return
 	}
 
 	resp, err := json.Marshal(orders)
 	if err != nil {
 		logger.L.Error("failed to marshal orders", zap.Error(err))
 		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
+		return
 	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	_, err = w.Write(resp)
 	if err != nil {
 		logger.L.Error("failed to send orders in response", zap.Error(err))
