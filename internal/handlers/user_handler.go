@@ -90,11 +90,9 @@ func (h *UserHandler) Login(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.Header().Set("Authorization", fmt.Sprintf("%s %s", jwt.TokenType, jwt.Token))
-	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(tokenBytes)
 	if err != nil {
 		logger.L.Debug("unable to write JWT", zap.Error(err))
-		return
 	}
 }
 

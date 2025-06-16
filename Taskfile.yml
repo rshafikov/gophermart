@@ -4,6 +4,7 @@ env:
   BIN_DIR: cmd/gophermart
   BIN_NAME: main
   BIN_PATH: "{{.BIN_DIR}}/{{.BIN_NAME}}"
+  DATABASE_URI: "postgres://postgres:password@localhost:5432/gophermart_test?sslmode=disable"
 
 dotenv: [ ".env", ]
 
@@ -39,17 +40,18 @@ tasks:
     desc: "Run final test from CI/CD"
     deps: [ test, build, ]
     cmds:
+      - defer: { task: db-reset }
       - |
         ./gophermarttest \
         -test.v \
         -test.run=^TestGophermart$ \
         -gophermart-binary-path={{.BIN_PATH}} \
         -gophermart-host=localhost \
-        -gophermart-port=8000 \
+        -gophermart-port=8080 \
         -gophermart-database-uri={{.DATABASE_URI}} \
         -accrual-binary-path=cmd/accrual/accrual_darwin_arm64 \
         -accrual-host=localhost \
-        -accrual-port=$(random-practicum unused-port) \
+        -accrual-port=8000 \
         -accrual-database-uri={{.DATABASE_URI}}
 
   # DATABASE
