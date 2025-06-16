@@ -8,3 +8,9 @@ const CreateBalance = `
 const GetBalanceByUserID = `
 	SELECT * FROM balances WHERE user_id = $1;
 `
+
+const UpdateBalance = `
+	UPDATE balances 
+	SET current = $1, updated_at = CURRENT_TIMESTAMP 
+	WHERE id = $2;
+`

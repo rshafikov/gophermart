@@ -9,15 +9,14 @@ CREATE TABLE IF NOT EXISTS balances
 
 CREATE TABLE IF NOT EXISTS transactions
 (
-    id         SERIAL PRIMARY KEY,
-    user_id    INT            NOT NULL,
+    id               SERIAL PRIMARY KEY,
+    user_id          INT            NOT NULL,
+    balance_id       INT            NOT NULL,
+    order_numeral_id TEXT           NOT NULL,
+    amount           DECIMAL(15, 2) NOT NULL,
+    created_at       TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    balance_id INT            NOT NULL,
-    FOREIGN KEY (balance_id) REFERENCES balances (id) ON DELETE CASCADE,
-    order_numeral_id      TEXT           NOT NULL,
-    FOREIGN KEY (order_numeral_id) REFERENCES orders (numeral_id) ON DELETE SET NULL,
-    amount     DECIMAL(15, 2) NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    FOREIGN KEY (balance_id) REFERENCES balances (id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_balances_user_id ON balances (user_id);

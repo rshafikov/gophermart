@@ -15,6 +15,11 @@ import (
 	"strconv"
 )
 
+var ErrInvalidOrderNumber = errors.New("invalid order number")
+
+const MsgInternalServerError = "internal server error"
+const MsgInvalidOrderNumber = "invalid order number"
+
 type OrderHandler struct {
 	Service *service.OrderService
 	Client  client.Client
@@ -47,7 +52,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	newOrder, err := h.validateOrder(body, u)
 	if err != nil {
 		logger.L.Error("invalid order number", zap.ByteString("body", body), zap.Error(err))
-		http.Error(w, `{"error": "invalid order number"}`, http.StatusUnprocessableEntity)
+		http.Error(w, MsgInvalidOrderNumber, http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -64,7 +69,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	default:
 		logger.L.Error("failed to create order", zap.Error(err), zap.String("numeral_id", newOrder.NumeralID))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 		return
 	}
 }
@@ -76,11 +81,17 @@ func (h *OrderHandler) validateOrder(body []byte, user *models.User) (*models.Or
 	}
 
 	if _, err := strconv.Atoi(numeralID); err != nil {
-		return nil, errors.New("invalid order number")
+		logger.L.Error(
+			"unable to convert order number to a digit",
+			zap.String("order number", numeralID),
+			zap.Error(err),
+		)
+		return nil, ErrInvalidOrderNumber
 	}
 
 	if isNumeralIDValid := security.LuhnAlgoPredicat(numeralID); !isNumeralIDValid {
-		return nil, errors.New("order number doesn't pass Luhn algorithm")
+		logger.L.Error("order number doesn't pass Luhn algorithm", zap.String("order number", numeralID))
+		return nil, ErrInvalidOrderNumber
 	}
 
 	return &models.Order{
@@ -95,22 +106,22 @@ func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {
 	u, ok := r.Context().Value(contextkeys.UserKey).(*models.User)
 	if !ok {
 		logger.L.Error("user not found in context")
-		http.Error(w, "internal error", http.StatusInternalServerError)
+		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 		return
 	}
 
 	orders, err := h.Service.GetOrders(r.Context(), u.ID)
 	if err != nil {
 		logger.L.Error("failed to get orders", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 	}
 
 	resp, err := json.Marshal(orders)
 	if err != nil {
 		logger.L.Error("failed to marshal orders", zap.Error(err))
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 	}
-	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	_, err = w.Write(resp)
 	if err != nil {

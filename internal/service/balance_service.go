@@ -49,7 +49,20 @@ func (s *BalanceService) GetUserBalance(ctx context.Context, userID int) (*model
 	return userBalance, err
 }
 
-func (s *BalanceService) ChangeUserBalance(ctx context.Context, balance *models.Balance) error {
+func (s *BalanceService) ChangeUserBalance(ctx context.Context, balance *models.Balance, tx *models.Tx) error {
+	if err := s.txRepo.CreateOne(ctx, tx); err != nil {
+		return err
+	}
+
+	balance.Current -= tx.Amount
+	if err := s.balanceRepo.UpdateOne(ctx, balance); err != nil {
+		logger.L.Error("unable to update user balance",
+			zap.Float64("current_balance", balance.Current),
+			zap.Float64("tx_amount", tx.Amount),
+		)
+		return err
+	}
+
 	return nil
 }
 

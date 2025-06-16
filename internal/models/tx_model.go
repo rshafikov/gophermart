@@ -25,4 +25,5 @@ type TxFilter struct {
 
 type TxRepository interface {
 	GetManyWithFilter(ctx context.Context, filter *TxFilter) ([]*Tx, error)
+	CreateOne(ctx context.Context, tx *Tx) error
 }

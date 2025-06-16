@@ -5,6 +5,8 @@ import (
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"log"
 	"net"
+	"net/url"
+	"strings"
 )
 
 func InitConfig() {
@@ -17,18 +19,18 @@ func InitConfig() {
 	}
 
 	if Env.RunAddress != "" {
-		host, port, err := net.SplitHostPort(Env.RunAddress)
+		host, port, err := ParseHostPort(Env.RunAddress)
 		if err != nil {
-			log.Fatal("invalid RUN_ADDRESS environment variable: ", Env.RunAddress)
+			log.Fatal("invalid RUN_ADDRESS environment variable: ", Env.RunAddress, err)
 		}
 		Config.RunAddress.Host = host
 		Config.RunAddress.Port = port
 	}
 
 	if Env.AccrualAddress != "" {
-		host, port, err := net.SplitHostPort(Env.AccrualAddress)
+		host, port, err := ParseHostPort(Env.AccrualAddress)
 		if err != nil {
-			log.Fatal("invalid ACCRUAL_SYSTEM_ADDRESS environment variable: ", Env.AccrualAddress)
+			log.Fatal("invalid ACCRUAL_SYSTEM_ADDRESS environment variable: ", Env.AccrualAddress, err)
 		}
 		Config.AccrualAddress.Host = host
 		Config.AccrualAddress.Port = port
@@ -73,4 +75,36 @@ func InitConfig() {
 	if dbURI == "" {
 		log.Fatal("DATABASE_URI is empty, please set it using ENV or CLI flag '-d'")
 	}
+}
+
+func ParseHostPort(rawURL string) (host, port string, err error) {
+	rawURL = strings.TrimSuffix(rawURL, "/")
+
+	parsedURL, err := url.Parse(rawURL)
+	if err == nil && parsedURL.Host != "" && parsedURL.Scheme != "" {
+		host, port, err = net.SplitHostPort(parsedURL.Host)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to split host and port: %w", err)
+		}
+		return host, port, nil
+	}
+
+	parsedURL, err = url.Parse("http://" + rawURL)
+	if err == nil && parsedURL.Host != "" {
+		host, port, err = net.SplitHostPort(parsedURL.Host)
+		if err != nil {
+			return "", "", fmt.Errorf("failed to split host and port with scheme: %w", err)
+		}
+		return host, port, nil
+	}
+
+	host, port, err = net.SplitHostPort(rawURL)
+	if err != nil {
+		if !strings.Contains(rawURL, ":") {
+			return rawURL, "", nil
+		}
+		return "", "", fmt.Errorf("failed to parse host and port: %w", err)
+	}
+
+	return host, port, nil
 }
