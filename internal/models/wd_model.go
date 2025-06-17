@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Tx struct {
+type Wd struct {
 	ID             int       `json:"-"`
 	UserID         int       `json:"-"`
 	BalanceID      int       `json:"-"`
@@ -14,7 +14,7 @@ type Tx struct {
 	CreatedAt      time.Time `json:"processed_at"`
 }
 
-type TxFilter struct {
+type WdFilter struct {
 	BalanceID  int
 	UserID     int
 	Query      string
@@ -23,7 +23,7 @@ type TxFilter struct {
 	EntityID   int
 }
 
-type TxRepository interface {
-	GetManyWithFilter(ctx context.Context, filter *TxFilter) ([]*Tx, error)
-	CreateOne(ctx context.Context, tx *Tx) error
+type WdRepository interface {
+	GetManyWithFilter(ctx context.Context, filter *WdFilter) ([]*Wd, error)
+	CreateOne(ctx context.Context, tx *Wd) error
 }
