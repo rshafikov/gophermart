@@ -14,11 +14,11 @@ var ErrNotFoundBalance = errors.New("not found")
 
 type BalanceService struct {
 	balanceRepo models.BalanceRepository
-	txRepo      models.TxRepository
+	wdRepo      models.WdRepository
 }
 
-func NewBalanceService(balanceRepo models.BalanceRepository, txRepo models.TxRepository) *BalanceService {
-	return &BalanceService{balanceRepo: balanceRepo, txRepo: txRepo}
+func NewBalanceService(balanceRepo models.BalanceRepository, wdRepo models.WdRepository) *BalanceService {
+	return &BalanceService{balanceRepo: balanceRepo, wdRepo: wdRepo}
 }
 
 func (s *BalanceService) GetUserBalance(ctx context.Context, userID int) (*models.Balance, error) {
@@ -29,36 +29,35 @@ func (s *BalanceService) GetUserBalance(ctx context.Context, userID int) (*model
 		}
 	}
 
-	queryFilter, err := repository.NewTxFilter(repository.WithUserID(userID))
+	queryFilter, err := repository.NewWdFilter(repository.WithUserID(userID))
 	if err != nil {
 		logger.L.Error("failed to build query filter", zap.Error(err))
 		return nil, err
 	}
-	txs, err := s.txRepo.GetManyWithFilter(ctx, queryFilter)
+	wds, err := s.wdRepo.GetManyWithFilter(ctx, queryFilter)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
 			return nil, err
 		}
 	}
 	var totalWithdrawal float64
-	for _, transaction := range txs {
-		totalWithdrawal += transaction.Amount
+	for _, withdrawal := range wds {
+		totalWithdrawal += withdrawal.Amount
 	}
 	userBalance.Withdrawn = totalWithdrawal
 
 	return userBalance, err
 }
 
-func (s *BalanceService) ChangeUserBalance(ctx context.Context, balance *models.Balance, tx *models.Tx) error {
-	if err := s.txRepo.CreateOne(ctx, tx); err != nil {
+func (s *BalanceService) ChangeUserBalance(ctx context.Context, balance *models.Balance, wd *models.Wd) error {
+	if err := s.wdRepo.CreateOne(ctx, wd); err != nil {
 		return err
 	}
 
-	balance.Current -= tx.Amount
 	if err := s.balanceRepo.UpdateOne(ctx, balance); err != nil {
 		logger.L.Error("unable to update user balance",
 			zap.Float64("current_balance", balance.Current),
-			zap.Float64("tx_amount", tx.Amount),
+			zap.Float64("tx_amount", wd.Amount),
 		)
 		return err
 	}
@@ -66,11 +65,11 @@ func (s *BalanceService) ChangeUserBalance(ctx context.Context, balance *models.
 	return nil
 }
 
-func (s *BalanceService) GetTxs(ctx context.Context, userID int) ([]*models.Tx, error) {
-	filter, err := repository.NewTxFilter(repository.WithUserID(userID), repository.WithSorted())
+func (s *BalanceService) GetWithdrawalsByUser(ctx context.Context, userID int) ([]*models.Wd, error) {
+	filter, err := repository.NewWdFilter(repository.WithUserID(userID), repository.WithSorted())
 	if err != nil {
 		logger.L.Error("failed to build query filter", zap.Error(err))
 		return nil, err
 	}
-	return s.txRepo.GetManyWithFilter(ctx, filter)
+	return s.wdRepo.GetManyWithFilter(ctx, filter)
 }

@@ -24,7 +24,7 @@ func main() {
 	userRepository := repository.NewUserRepository(Application.DB.Pool)
 	orderRepository := repository.NewOrderRepository(Application.DB.Pool)
 	balanceRepository := repository.NewBalanceRepository(Application.DB.Pool)
-	txRepository := repository.NewTxRepository(Application.DB.Pool)
+	txRepository := repository.NewWdRepository(Application.DB.Pool)
 
 	userService := service.NewUserService(userRepository)
 	orderService := service.NewOrderService(orderRepository)

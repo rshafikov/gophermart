@@ -10,69 +10,82 @@ import (
 	"go.uber.org/zap"
 	"io"
 	"net/http"
+	"time"
 )
 
-var ErrInternalServerError = errors.New("accrual Internal Server Error")
+const requestTimeout = 3 * time.Second
+
+var ErrAccrualServerFailure = errors.New("accrual Internal Server Error")
 var ErrTooManyRequests = errors.New("too many requests")
 var ErrNoContent = errors.New("no content")
 var ErrInnerError = errors.New("inner error")
 
 type Client interface {
-	GetOrderStatus(ctx context.Context, number string) (*schemas.AccrualOrder, int, error)
+	GetOrderStatus(ctx context.Context, number string) (*schemas.AccrualOrder, error)
 }
 
 type accrualClient struct {
-	baseURL    string
-	httpClient *http.Client
+	baseURL        string
+	httpClient     *http.Client
+	requestTimeout time.Duration
 }
 
 func NewAccrualClient(baseURL string) Client {
 	return &accrualClient{
-		baseURL:    baseURL,
-		httpClient: &http.Client{},
+		baseURL:        baseURL,
+		httpClient:     &http.Client{},
+		requestTimeout: requestTimeout,
 	}
 }
 
-func (r *accrualClient) GetOrderStatus(ctx context.Context, number string) (*schemas.AccrualOrder, int, error) {
+func (r *accrualClient) GetOrderStatus(ctx context.Context, number string) (*schemas.AccrualOrder, error) {
 	url := fmt.Sprintf("%s/api/orders/%s", r.baseURL, number)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	requestCtx, cancel := context.WithTimeout(ctx, r.requestTimeout)
+	defer cancel()
+
+	req, err := http.NewRequestWithContext(requestCtx, http.MethodGet, url, nil)
 	if err != nil {
-		logger.L.Debug("Error creating request", zap.Error(err))
-		return nil, -1, ErrInnerError
+		logger.L.Debug("error creating request", zap.Error(err))
+		return nil, ErrInnerError
 	}
 
 	resp, err := r.httpClient.Do(req)
 	if err != nil {
-		return nil, -1, ErrInnerError
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			logger.L.Debug("request timed out", zap.Error(err))
+			return nil, fmt.Errorf("request timed out: %w", err)
+		}
+		logger.L.Debug("error performing request", zap.Error(err))
+		return nil, ErrInnerError
 	}
 	defer resp.Body.Close()
 
 	statusCode := resp.StatusCode
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, -1, ErrInnerError
+		return nil, ErrInnerError
 	}
+	logger.L.Debug("response from accrual service", zap.Int("status_code", statusCode), zap.ByteString("body", body))
 
 	switch statusCode {
 	case http.StatusOK:
 		var order schemas.AccrualOrder
 		if err := json.Unmarshal(body, &order); err != nil {
-			return nil, http.StatusInternalServerError, err
+			return nil, ErrInnerError
 		}
-		return &order, statusCode, nil
+		return &order, nil
 
 	case http.StatusNoContent:
-		return nil, statusCode, ErrNoContent
+		return nil, ErrNoContent
 
 	case http.StatusTooManyRequests:
-		return nil, statusCode, ErrTooManyRequests
+		return nil, ErrTooManyRequests
 
 	case http.StatusInternalServerError:
-		return nil, statusCode, ErrInternalServerError
+		return nil, ErrAccrualServerFailure
 
 	default:
-		logger.L.Warn("unexpected status code", zap.Int("status_code", statusCode))
-		return nil, statusCode, ErrInternalServerError
+		return nil, ErrAccrualServerFailure
 	}
 }

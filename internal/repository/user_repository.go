@@ -22,7 +22,7 @@ func NewUserRepository(pool *pgxpool.Pool) *UserRepository {
 func (r *UserRepository) CreateUser(ctx context.Context, user *models.User) error {
 	tx, err := r.Pool.Begin(ctx)
 	if err != nil {
-		logger.L.Debug("error starting transaction", zap.Error(err))
+		logger.L.Debug("error starting transaction in DB", zap.Error(err))
 		return err
 	}
 	defer func() {

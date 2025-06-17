@@ -94,7 +94,7 @@ func (h *BalanceHandler) WithdrawFromBalance(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	tx := &models.Tx{
+	wd := &models.Wd{
 		UserID:         u.ID,
 		BalanceID:      userBalance.ID,
 		OrderNumeralID: withdraw.Order,
@@ -102,7 +102,8 @@ func (h *BalanceHandler) WithdrawFromBalance(w http.ResponseWriter, r *http.Requ
 		CreatedAt:      time.Now(),
 	}
 
-	if err := h.BalanceService.ChangeUserBalance(r.Context(), userBalance, tx); err != nil {
+	userBalance.Current -= withdraw.Sum
+	if err := h.BalanceService.ChangeUserBalance(r.Context(), userBalance, wd); err != nil {
 		logger.L.Error("error updating balance", zap.Error(err))
 		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 		return
@@ -119,27 +120,27 @@ func (h *BalanceHandler) GetUserWithdrawals(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	txs, err := h.BalanceService.GetTxs(r.Context(), u.ID)
+	wds, err := h.BalanceService.GetWithdrawalsByUser(r.Context(), u.ID)
 	if err != nil {
-		logger.L.Error("error getting user transactions", zap.Error(err))
+		logger.L.Error("error getting user withdrawals", zap.Error(err))
 		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 	}
 
-	resp, err := json.Marshal(txs)
+	resp, err := json.Marshal(wds)
 	if err != nil {
-		logger.L.Error("error marshalling user transactions", zap.Error(err))
+		logger.L.Error("error marshalling user withdrawals", zap.Error(err))
 		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-	if len(txs) == 0 {
+	if len(wds) == 0 {
 		w.WriteHeader(http.StatusNoContent)
 		return
 	}
 
 	_, err = w.Write(resp)
 	if err != nil {
-		logger.L.Error("failed to send transactions in response", zap.Error(err))
+		logger.L.Error("failed to send withdrawals in response", zap.Error(err))
 	}
 }

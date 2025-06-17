@@ -20,5 +20,5 @@ type BalanceRepository interface {
 
 type BalanceService interface {
 	GetUserBalance(ctx context.Context, userID int) (*Balance, error)
-	ChangeUserBalance(ctx context.Context, balance *Balance, tx *Tx) error
+	ChangeUserBalance(ctx context.Context, balance *Balance, tx *Wd) error
 }

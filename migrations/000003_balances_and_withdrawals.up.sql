@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS balances
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE IF NOT EXISTS transactions
+CREATE TABLE IF NOT EXISTS withdrawals
 (
     id               SERIAL PRIMARY KEY,
     user_id          INT            NOT NULL,
@@ -20,5 +20,5 @@ CREATE TABLE IF NOT EXISTS transactions
 );
 
 CREATE INDEX idx_balances_user_id ON balances (user_id);
-CREATE INDEX idx_transactions_balance_id ON transactions (balance_id);
-CREATE INDEX idx_transactions_order_id ON transactions (order_numeral_id) WHERE order_numeral_id IS NOT NULL;
+CREATE INDEX idx_withdrawals_balance_id ON withdrawals (balance_id);
+CREATE INDEX idx_withdrawals_order_id ON withdrawals (order_numeral_id) WHERE order_numeral_id IS NOT NULL;
