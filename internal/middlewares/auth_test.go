@@ -64,7 +64,7 @@ func TestAuthenticater(t *testing.T) {
 	}{
 		{
 			name:  "test with valid token",
-			token: "fake-token user_1",
+			token: "Bearer fake-token user_1",
 			want: want{
 				code:     http.StatusOK,
 				response: "user_1",
@@ -76,8 +76,17 @@ func TestAuthenticater(t *testing.T) {
 			},
 		},
 		{
+			name:  "test with empty auth header",
+			token: "",
+			want: want{
+				code:     http.StatusUnauthorized,
+				response: "unauthorized",
+			},
+			setupMocks: func() {},
+		},
+		{
 			name:  "test with invalid token",
-			token: "wrong-fake-token user_1",
+			token: "Bearer wrong-fake-token user_1",
 			want: want{
 				code:     http.StatusUnauthorized,
 				response: "unauthorized",
@@ -89,7 +98,7 @@ func TestAuthenticater(t *testing.T) {
 		},
 		{
 			name:  "test token when user not found",
-			token: "fake-token user_1",
+			token: "Bearer fake-token user_1",
 			want: want{
 				code:     http.StatusUnauthorized,
 				response: "unauthorized",
@@ -113,7 +122,7 @@ func TestAuthenticater(t *testing.T) {
 			req, err := http.NewRequest(http.MethodGet, ts.URL, nil)
 			require.NoError(t, err)
 
-			req.Header.Set("Authorization", "Bearer "+test.token)
+			req.Header.Set("Authorization", test.token)
 			resp, err := c.Client.Do(req)
 			require.NoError(t, err)
 			defer resp.Body.Close()

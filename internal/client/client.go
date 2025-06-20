@@ -32,7 +32,7 @@ type accrualClient struct {
 
 func NewAccrualClient(baseURL string) Client {
 	return &accrualClient{
-		baseURL:        baseURL,
+		baseURL:        "http://" + baseURL,
 		httpClient:     &http.Client{},
 		requestTimeout: requestTimeout,
 	}
@@ -66,7 +66,7 @@ func (r *accrualClient) GetOrderStatus(ctx context.Context, number string) (*sch
 	if err != nil {
 		return nil, ErrInnerError
 	}
-	logger.L.Debug("response from accrual service", zap.Int("status_code", statusCode), zap.ByteString("body", body))
+	logger.L.Info("response from accrual service", zap.Int("status_code", statusCode), zap.ByteString("body", body))
 
 	switch statusCode {
 	case http.StatusOK:

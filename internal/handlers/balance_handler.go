@@ -2,22 +2,20 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"github.com/rshafikov/gophermart/internal/core/contextkeys"
 	"github.com/rshafikov/gophermart/internal/core/logger"
-	"github.com/rshafikov/gophermart/internal/core/security"
 	"github.com/rshafikov/gophermart/internal/models"
-	"github.com/rshafikov/gophermart/internal/schemas"
 	"github.com/rshafikov/gophermart/internal/service"
 	"go.uber.org/zap"
 	"net/http"
-	"time"
 )
 
 type BalanceHandler struct {
-	BalanceService *service.BalanceService
+	BalanceService models.BalanceService
 }
 
-func NewBalanceHandler(service *service.BalanceService) *BalanceHandler {
+func NewBalanceHandler(service models.BalanceService) *BalanceHandler {
 	return &BalanceHandler{BalanceService: service}
 }
 
@@ -59,22 +57,15 @@ func (h *BalanceHandler) WithdrawFromBalance(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	var withdraw schemas.Withdraw
+	var withdraw models.Wd
 	if err := json.NewDecoder(r.Body).Decode(&withdraw); err != nil {
 		logger.L.Error("error decoding request body", zap.Error(err))
 		http.Error(w, "invalid request format", http.StatusBadRequest)
 		return
 	}
 
-	if !security.LuhnAlgoPredicat(withdraw.Order) {
-		logger.L.Error("invalid order number format")
-		http.Error(w, MsgInvalidOrderNumber, http.StatusUnprocessableEntity)
-		return
-	}
-
-	if withdraw.Sum <= 0 {
-		logger.L.Error("invalid sum value")
-		http.Error(w, "invalid sum value", http.StatusUnprocessableEntity)
+	if err := withdraw.Validate(); err != nil {
+		http.Error(w, err.Error(), http.StatusUnprocessableEntity)
 		return
 	}
 
@@ -85,25 +76,11 @@ func (h *BalanceHandler) WithdrawFromBalance(w http.ResponseWriter, r *http.Requ
 		return
 	}
 
-	if userBalance.Current < withdraw.Sum {
-		logger.L.Error("insufficient funds",
-			zap.Float64("current", userBalance.Current),
-			zap.Float64("requested", withdraw.Sum),
-		)
-		http.Error(w, "insufficient funds", http.StatusPaymentRequired)
-		return
-	}
-
-	wd := &models.Wd{
-		UserID:         u.ID,
-		BalanceID:      userBalance.ID,
-		OrderNumeralID: withdraw.Order,
-		Amount:         withdraw.Sum,
-		CreatedAt:      time.Now(),
-	}
-
-	userBalance.Current -= withdraw.Sum
-	if err := h.BalanceService.ChangeUserBalance(r.Context(), userBalance, wd); err != nil {
+	if err := h.BalanceService.Withdraw(r.Context(), userBalance, &withdraw); err != nil {
+		if errors.Is(err, service.ErrInsufficientFunds) {
+			http.Error(w, "insufficient funds", http.StatusPaymentRequired)
+			return
+		}
 		logger.L.Error("error updating balance", zap.Error(err))
 		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 		return

@@ -44,11 +44,15 @@ func (c *HTTPClient) URLRequest(t *testing.T, method, path string) (*http.Respon
 	return resp, string(respBody)
 }
 
-func (c *HTTPClient) JSONRequest(t *testing.T, method, path, reqBody string) (*http.Response, string) {
+func (c *HTTPClient) JSONRequest(t *testing.T, method, path, reqBody string, authToken string) (*http.Response, string) {
 	req, err := http.NewRequest(method, c.BaseURL+path, bytes.NewBuffer([]byte(reqBody)))
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", "application/json")
+	if authToken != "" {
+		req.Header.Set("Authorization", authToken)
+	}
+
 	resp, err := c.Client.Do(req)
 	require.NoError(t, err)
 
