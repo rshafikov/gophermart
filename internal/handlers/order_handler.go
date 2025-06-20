@@ -7,6 +7,7 @@ import (
 	"github.com/rshafikov/gophermart/internal/core/contextkeys"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/models"
+	"github.com/rshafikov/gophermart/internal/schemas"
 	"github.com/rshafikov/gophermart/internal/service"
 	"go.uber.org/zap"
 	"io"
@@ -17,11 +18,11 @@ const MsgInternalServerError = "internal server error"
 const MsgInvalidOrderNumber = "invalid order number"
 
 type OrderHandler struct {
-	Service *service.OrderService
+	Service models.OrderService
 	Client  client.Client
 }
 
-func NewOrderHandler(orderService *service.OrderService, client client.Client) *OrderHandler {
+func NewOrderHandler(orderService models.OrderService, client client.Client) *OrderHandler {
 	return &OrderHandler{Service: orderService, Client: client}
 }
 
@@ -59,8 +60,14 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
 		return
 	}
-	newOrder.Accrual = externalOrder.Accrual
-	newOrder.Status = models.OrderStatus(externalOrder.Status)
+
+	switch externalOrder.Status {
+	case schemas.AccrualOrderStatusRegistered:
+		newOrder.Status = models.StatusNew
+	default:
+		newOrder.Accrual = externalOrder.Accrual
+		newOrder.Status = models.InternalOrderStatus(externalOrder.Status)
+	}
 
 	err = h.Service.CreateOrderIfNotExists(r.Context(), &newOrder)
 	switch {

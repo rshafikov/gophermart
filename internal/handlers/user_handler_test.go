@@ -132,7 +132,7 @@ func TestUserHandler_Register(t *testing.T) {
 				test.setupMocks()
 			}
 
-			resp, b := client.JSONRequest(t, http.MethodPost, test.url, test.body)
+			resp, b := client.JSONRequest(t, http.MethodPost, test.url, test.body, "")
 			defer resp.Body.Close()
 
 			assert.Equal(t, test.want.code, resp.StatusCode)
@@ -246,7 +246,7 @@ func TestUserHandler_Login(t *testing.T) {
 			if test.setupMocks != nil {
 				test.setupMocks()
 			}
-			response, body := client.JSONRequest(t, http.MethodPost, test.url, test.body)
+			response, body := client.JSONRequest(t, http.MethodPost, test.url, test.body, "")
 			defer response.Body.Close()
 
 			assert.Equal(t, test.want.code, response.StatusCode)

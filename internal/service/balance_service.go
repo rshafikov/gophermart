@@ -11,6 +11,7 @@ import (
 )
 
 var ErrNotFoundBalance = errors.New("not found")
+var ErrInsufficientFunds = errors.New("insufficient funds")
 
 type BalanceService struct {
 	balanceRepo models.BalanceRepository
@@ -49,16 +50,9 @@ func (s *BalanceService) GetUserBalance(ctx context.Context, userID int) (*model
 	return userBalance, err
 }
 
-func (s *BalanceService) ChangeUserBalance(ctx context.Context, balance *models.Balance, wd *models.Wd) error {
-	if err := s.wdRepo.CreateOne(ctx, wd); err != nil {
-		return err
-	}
-
+func (s *BalanceService) ChangeUserBalance(ctx context.Context, balance *models.Balance) error {
 	if err := s.balanceRepo.UpdateOne(ctx, balance); err != nil {
-		logger.L.Error("unable to update user balance",
-			zap.Float64("current_balance", balance.Current),
-			zap.Float64("tx_amount", wd.Amount),
-		)
+		logger.L.Error("unable to update user balance", zap.Float64("new_balance", balance.Current))
 		return err
 	}
 
@@ -72,4 +66,30 @@ func (s *BalanceService) GetWithdrawalsByUser(ctx context.Context, userID int) (
 		return nil, err
 	}
 	return s.wdRepo.GetManyWithFilter(ctx, filter)
+}
+
+func (s *BalanceService) Withdraw(ctx context.Context, b *models.Balance, wd *models.Wd) error {
+	if b.Current < wd.Amount {
+		logger.L.Error("insufficient funds",
+			zap.Float64("current", b.Current),
+			zap.Float64("requested", wd.Amount),
+		)
+		return ErrInsufficientFunds
+	}
+
+	b.Current -= wd.Amount
+	if err := s.balanceRepo.UpdateOne(ctx, b); err != nil {
+		logger.L.Error("unable to update balance", zap.Float64("new_balance", b.Current))
+		return err
+	}
+
+	if err := s.wdRepo.CreateOne(ctx, wd); err != nil {
+		logger.L.Error("unable to create withdrawal",
+			zap.Float64("amount", wd.Amount),
+			zap.Float64("current_balance", b.Current),
+		)
+		return err
+	}
+
+	return nil
 }

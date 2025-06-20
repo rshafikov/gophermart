@@ -11,8 +11,17 @@ type OrderGetResponse struct {
 	CreatedAt string  `json:"uploaded_at"`
 }
 
+type AccrualStatus string
+
+const (
+	AccrualOrderStatusRegistered AccrualStatus = "REGISTERED"
+	AccrualOrderStatusProcessing AccrualStatus = "PROCESSING"
+	AccrualOrderStatusProcessed  AccrualStatus = "PROCESSED"
+	AccrualOrderStatusInvalid    AccrualStatus = "INVALID"
+)
+
 type AccrualOrder struct {
-	Accrual   float64 `json:"accrual,omitempty"`
-	NumeralID string  `json:"number"`
-	Status    string  `json:"status"`
+	Accrual   float64       `json:"accrual,omitempty"`
+	NumeralID string        `json:"number"`
+	Status    AccrualStatus `json:"status"`
 }

@@ -11,23 +11,23 @@ import (
 	"time"
 )
 
-type OrderStatus string
+type InternalOrderStatus string
 
 const (
-	StatusNew        = "NEW"
-	StatusProcessing = "PROCESSING"
-	StatusInvalid    = "INVALID"
-	StatusProcessed  = "PROCESSED"
+	StatusNew        InternalOrderStatus = "NEW"
+	StatusProcessing InternalOrderStatus = "PROCESSING"
+	StatusInvalid    InternalOrderStatus = "INVALID"
+	StatusProcessed  InternalOrderStatus = "PROCESSED"
 )
 
 type Order struct {
-	ID        int         `json:"-"`
-	NumeralID string      `json:"number"`
-	UserID    int         `json:"-"`
-	Status    OrderStatus `json:"status"`
-	Accrual   float64     `json:"accrual,omitempty"`
-	CreatedAt time.Time   `json:"uploaded_at"`
-	UpdatedAt time.Time   `json:"-"`
+	ID        int                 `json:"-"`
+	NumeralID string              `json:"number"`
+	UserID    int                 `json:"-"`
+	Status    InternalOrderStatus `json:"status"`
+	Accrual   float64             `json:"accrual,omitempty"`
+	CreatedAt time.Time           `json:"uploaded_at"`
+	UpdatedAt time.Time           `json:"-"`
 }
 
 func (o *Order) Validate() error {
