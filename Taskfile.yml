@@ -27,6 +27,7 @@ tasks:
     deps: [ build, ]
     cmd: "./{{.BIN_PATH}} -d {{.DB_URI}} -l debug"
 
+
   coverage:
     desc: "Get test coverage"
     cmd: go test -cover ./internal/...
