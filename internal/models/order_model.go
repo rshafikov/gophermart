@@ -14,10 +14,10 @@ import (
 type InternalOrderStatus string
 
 const (
-	StatusNew        InternalOrderStatus = "NEW"
-	StatusProcessing InternalOrderStatus = "PROCESSING"
-	StatusInvalid    InternalOrderStatus = "INVALID"
-	StatusProcessed  InternalOrderStatus = "PROCESSED"
+	OrderStatusNew        InternalOrderStatus = "NEW"
+	OrderStatusProcessing InternalOrderStatus = "PROCESSING"
+	OrderStatusInvalid    InternalOrderStatus = "INVALID"
+	OrderStatusProcessed  InternalOrderStatus = "PROCESSED"
 )
 
 type Order struct {
@@ -56,9 +56,11 @@ type OrderRepository interface {
 	CreateOne(ctx context.Context, order *Order) error
 	GetOneByNumeralID(ctx context.Context, numeralID string) (*Order, error)
 	GetManyByUserID(ctx context.Context, userID int) ([]*Order, error)
+	UpdateOne(ctx context.Context, order *Order) error
 }
 
 type OrderService interface {
 	CreateOrderIfNotExists(ctx context.Context, order *Order) error
 	GetOrders(ctx context.Context, userID int) ([]*Order, error)
+	UpdateOrder(ctx context.Context, order *Order) error
 }

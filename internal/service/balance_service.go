@@ -50,12 +50,21 @@ func (s *BalanceService) GetUserBalance(ctx context.Context, userID int) (*model
 	return userBalance, err
 }
 
-func (s *BalanceService) ChangeUserBalance(ctx context.Context, balance *models.Balance) error {
-	if err := s.balanceRepo.UpdateOne(ctx, balance); err != nil {
-		logger.L.Error("unable to update user balance", zap.Float64("new_balance", balance.Current))
+func (s *BalanceService) IncreaseUserBalance(ctx context.Context, userID int, amount float64) error {
+	userBalance, err := s.balanceRepo.GetOneByUserID(ctx, userID)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return ErrNotFoundBalance
+		}
 		return err
 	}
 
+	userBalance.Current += amount
+	err = s.balanceRepo.UpdateOne(ctx, userBalance)
+	if err != nil {
+		logger.L.Error("unable to update balance", zap.Float64("new_balance", userBalance.Current))
+		return err
+	}
 	return nil
 }
 
@@ -78,6 +87,9 @@ func (s *BalanceService) Withdraw(ctx context.Context, b *models.Balance, wd *mo
 	}
 
 	b.Current -= wd.Amount
+	wd.UserID = b.UserID
+	wd.BalanceID = b.ID
+
 	if err := s.balanceRepo.UpdateOne(ctx, b); err != nil {
 		logger.L.Error("unable to update balance", zap.Float64("new_balance", b.Current))
 		return err

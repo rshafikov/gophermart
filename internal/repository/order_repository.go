@@ -64,3 +64,8 @@ func (r *OrderRepository) GetManyByUserID(ctx context.Context, userID int) ([]*m
 	}
 	return orders, nil
 }
+
+func (r *OrderRepository) UpdateOne(ctx context.Context, order *models.Order) error {
+	_, err := r.Pool.Exec(ctx, queries.UpdateOrder, order.Status, order.Accrual, order.NumeralID)
+	return err
+}

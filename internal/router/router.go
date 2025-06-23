@@ -8,6 +8,7 @@ import (
 	"github.com/rshafikov/gophermart/internal/handlers"
 	"github.com/rshafikov/gophermart/internal/middlewares"
 	"github.com/rshafikov/gophermart/internal/service"
+	"github.com/rshafikov/gophermart/internal/workerpool"
 )
 
 type Router struct {
@@ -41,8 +42,11 @@ func (mr *Router) Routes() chi.Router {
 	r.Use(middleware.Compress(5, "application/json", "text/plain"))
 	r.Use(middleware.SetHeader("Content-Type", "application/json; encoding=utf-8"))
 
+	wp := workerpool.NewWorkerPool(2, mr.AccrualClient, mr.OrderService, mr.BalanceService)
+	wp.Start()
+
 	userHandler := handlers.NewUserHandler(mr.UserService, mr.JWT)
-	orderHandler := handlers.NewOrderHandler(mr.OrderService, mr.AccrualClient)
+	orderHandler := handlers.NewOrderHandler(mr.OrderService, wp)
 	balanceHandler := handlers.NewBalanceHandler(mr.BalanceService)
 
 	r.Route("/api", func(r chi.Router) {
