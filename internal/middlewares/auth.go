@@ -21,6 +21,10 @@ func Authenticater(jwtHandler security.JWTHandler, userService models.UserServic
 			}
 
 			token := strings.Split(tokenHeader, "Bearer ")
+			if len(token) != 2 {
+				http.Error(w, "unauthorized", http.StatusUnauthorized)
+				return
+			}
 			payload, err := jwtHandler.ParseJWT(token[1])
 			if err != nil {
 				http.Error(w, "unauthorized", http.StatusUnauthorized)

@@ -9,9 +9,12 @@ import (
 )
 
 const (
-	defaultServerHost = "localhost"
-	defaultServerPort = "8080"
-	defaultLogLevel   = "info"
+	defaultServerHost  = "localhost"
+	defaultServerPort  = "8080"
+	defaultLogLevel    = "info"
+	defaultDBPort      = "5432"
+	defaultAccrualHost = "localhost"
+	defaultAccrualPort = "8000"
 )
 
 type dbSettings struct {
@@ -65,10 +68,12 @@ func (d *dbSettings) Set(s string) error {
 
 	colonIndex := strings.LastIndex(hostPort, ":")
 	if colonIndex == -1 {
-		return errors.New("invalid url: missing ':' in host:port")
+		d.Port = defaultDBPort
+		d.Host = hostPort
+	} else {
+		d.Port = hostPort[colonIndex+1:]
+		d.Host = hostPort[:colonIndex]
 	}
-	d.Host = hostPort[:colonIndex]
-	d.Port = hostPort[colonIndex+1:]
 
 	return nil
 }
@@ -106,7 +111,7 @@ type defaultConfig struct {
 var Config = defaultConfig{
 	DB:             dbSettings{},
 	RunAddress:     netAddr{Host: defaultServerHost, Port: defaultServerPort},
-	AccrualAddress: netAddr{},
+	AccrualAddress: netAddr{Host: defaultAccrualHost, Port: defaultAccrualPort},
 	LogLevel:       defaultLogLevel,
 }
 

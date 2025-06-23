@@ -3,20 +3,35 @@ package router
 import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/rshafikov/gophermart/internal/client"
 	"github.com/rshafikov/gophermart/internal/core/security"
 	"github.com/rshafikov/gophermart/internal/handlers"
 	"github.com/rshafikov/gophermart/internal/middlewares"
 	"github.com/rshafikov/gophermart/internal/service"
-	"net/http"
+	"github.com/rshafikov/gophermart/internal/workerpool"
 )
 
 type Router struct {
-	UserService *service.UserService
-	JWT         security.JWTHandler
+	UserService    *service.UserService
+	OrderService   *service.OrderService
+	BalanceService *service.BalanceService
+	JWT            security.JWTHandler
+	AccrualClient  client.Client
 }
 
-func NewRouter(userService *service.UserService, jwtService security.JWTHandler) *Router {
-	return &Router{UserService: userService, JWT: jwtService}
+func NewRouter(
+	u *service.UserService,
+	o *service.OrderService,
+	b *service.BalanceService,
+	jwt security.JWTHandler,
+	c client.Client,
+) *Router {
+	return &Router{
+		UserService:    u,
+		OrderService:   o,
+		BalanceService: b,
+		JWT:            jwt,
+		AccrualClient:  c}
 }
 
 func (mr *Router) Routes() chi.Router {
@@ -24,8 +39,15 @@ func (mr *Router) Routes() chi.Router {
 
 	r.Use(middlewares.Logger)
 	r.Use(middleware.Recoverer)
+	r.Use(middleware.Compress(5, "application/json", "text/plain"))
+	r.Use(middleware.SetHeader("Content-Type", "application/json; encoding=utf-8"))
+
+	wp := workerpool.NewWorkerPool(2, mr.AccrualClient, mr.OrderService, mr.BalanceService)
+	wp.Start()
 
 	userHandler := handlers.NewUserHandler(mr.UserService, mr.JWT)
+	orderHandler := handlers.NewOrderHandler(mr.OrderService, wp)
+	balanceHandler := handlers.NewBalanceHandler(mr.BalanceService)
 
 	r.Route("/api", func(r chi.Router) {
 		r.Route("/user", func(r chi.Router) {
@@ -33,11 +55,11 @@ func (mr *Router) Routes() chi.Router {
 			r.Post("/login", userHandler.Login)
 			r.Group(func(r chi.Router) {
 				r.Use(middlewares.Authenticater(mr.JWT, mr.UserService))
-				r.Post("/orders", userHandler.CreateOrder)
-				r.Get("/orders", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-				r.Get("/balance", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-				r.Post("/balance/withdraw", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-				r.Get("/withdrawals", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+				r.Post("/orders", orderHandler.CreateOrder)
+				r.Get("/orders", orderHandler.GetOrders)
+				r.Get("/balance", balanceHandler.GetUserBalance)
+				r.Post("/balance/withdraw", balanceHandler.WithdrawFromBalance)
+				r.Get("/withdrawals", balanceHandler.GetUserWithdrawals)
 			})
 		})
 	})

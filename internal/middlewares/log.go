@@ -2,7 +2,6 @@ package middlewares
 
 import (
 	"fmt"
-	"github.com/go-chi/chi/v5/middleware"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"go.uber.org/zap"
 	"net/http"
@@ -60,7 +59,7 @@ func Logger(h http.Handler) http.Handler {
 			case rData.status < 500:
 				outputColor = "\033[31m"
 			default:
-				outputColor = "\033[37m"
+				outputColor = "\033[31;1m"
 			}
 			duration := time.Since(start)
 			resetColor := []byte{'\033', '[', '0', 'm'}
@@ -79,38 +78,4 @@ func Logger(h http.Handler) http.Handler {
 			}
 		}()
 	})
-}
-
-type MinmalLogFormatter struct{}
-
-func (f *MinmalLogFormatter) NewLogEntry(r *http.Request) middleware.LogEntry {
-	entry := &MinimalLogEntry{
-		Request: r,
-		Start:   time.Now(),
-	}
-	logger.L.Info(
-		"[START]",
-		zap.String("method", r.Method),
-		zap.String("URI", r.URL.Path),
-		zap.String("remote_addr", r.RemoteAddr),
-	)
-	return entry
-}
-
-type MinimalLogEntry struct {
-	Request *http.Request
-	Start   time.Time
-}
-
-func (e *MinimalLogEntry) Write(status, bytes int, header http.Header, elapsed time.Duration, extra interface{}) {
-	logger.L.Info(
-		"[DONE]",
-		zap.Int("status", status),
-		zap.Int("bytes", bytes),
-		zap.Duration("duration", elapsed),
-	)
-}
-
-func (e *MinimalLogEntry) Panic(v interface{}, stack []byte) {
-	logger.L.Panic("[PANIC]", zap.Reflect("v", v), zap.ByteString("stack", stack))
 }
