@@ -12,3 +12,9 @@ const GetOrderByNumeralID = `
 const GetOrdersByUserID = `
 	SELECT * FROM orders WHERE user_id = $1 ORDER BY created_at DESC;
 `
+
+const UpdateOrder = `
+	UPDATE orders 
+	SET status = $1, accrual = $2, updated_at = NOW()
+	WHERE numeral_id = $3
+`

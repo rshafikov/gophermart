@@ -3,12 +3,11 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"github.com/rshafikov/gophermart/internal/client"
 	"github.com/rshafikov/gophermart/internal/core/contextkeys"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/models"
-	"github.com/rshafikov/gophermart/internal/schemas"
 	"github.com/rshafikov/gophermart/internal/service"
+	"github.com/rshafikov/gophermart/internal/workerpool"
 	"go.uber.org/zap"
 	"io"
 	"net/http"
@@ -19,11 +18,11 @@ const MsgInvalidOrderNumber = "invalid order number"
 
 type OrderHandler struct {
 	Service models.OrderService
-	Client  client.Client
+	WP      *workerpool.WorkerPool
 }
 
-func NewOrderHandler(orderService models.OrderService, client client.Client) *OrderHandler {
-	return &OrderHandler{Service: orderService, Client: client}
+func NewOrderHandler(orderService models.OrderService, pool *workerpool.WorkerPool) *OrderHandler {
+	return &OrderHandler{Service: orderService, WP: pool}
 }
 
 func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
@@ -46,7 +45,7 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	}
 	defer r.Body.Close()
 
-	newOrder := models.Order{NumeralID: string(body), UserID: u.ID}
+	newOrder := models.Order{NumeralID: string(body), UserID: u.ID, Status: models.OrderStatusNew}
 
 	if err = newOrder.Validate(); err != nil {
 		logger.L.Error("invalid order number", zap.ByteString("body", body), zap.Error(err))
@@ -54,37 +53,26 @@ func (h *OrderHandler) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	externalOrder, err := h.Client.GetOrderStatus(r.Context(), newOrder.NumeralID)
-	if err != nil {
-		logger.L.Error("failed to get order status", zap.Error(err), zap.String("numeral_id", newOrder.NumeralID))
-		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
-		return
-	}
-
-	switch externalOrder.Status {
-	case schemas.AccrualOrderStatusRegistered:
-		newOrder.Status = models.StatusNew
-	default:
-		newOrder.Accrual = externalOrder.Accrual
-		newOrder.Status = models.InternalOrderStatus(externalOrder.Status)
-	}
-
 	err = h.Service.CreateOrderIfNotExists(r.Context(), &newOrder)
 	switch {
 	case err == nil:
 		w.WriteHeader(http.StatusAccepted)
-		return
+		h.WP.AddTask(workerpool.OrderTask{
+			OrderID:           newOrder.NumeralID,
+			UserID:            u.ID,
+			LastAccrualStatus: "",
+			AccrualOrder:      nil,
+			Error:             nil,
+		})
 	case errors.Is(err, service.ErrOrderAlreadyLoaded):
 		w.WriteHeader(http.StatusOK)
-		return
 	case errors.Is(err, service.ErrOrderLoadedBySomeone):
 		http.Error(w, err.Error(), http.StatusConflict)
-		return
 	default:
 		logger.L.Error("failed to create order", zap.Error(err), zap.String("numeral_id", newOrder.NumeralID))
 		http.Error(w, MsgInternalServerError, http.StatusInternalServerError)
-		return
 	}
+
 }
 
 func (h *OrderHandler) GetOrders(w http.ResponseWriter, r *http.Request) {

@@ -40,3 +40,7 @@ func (s *OrderService) CreateOrderIfNotExists(ctx context.Context, newOrder *mod
 func (s *OrderService) GetOrders(ctx context.Context, userID int) ([]*models.Order, error) {
 	return s.repo.GetManyByUserID(ctx, userID)
 }
+
+func (s *OrderService) UpdateOrder(ctx context.Context, order *models.Order) error {
+	return s.repo.UpdateOne(ctx, order)
+}

@@ -86,6 +86,7 @@ func (r *accrualClient) GetOrderStatus(ctx context.Context, number string) (*sch
 		return nil, ErrAccrualServerFailure
 
 	default:
+		logger.L.Debug("unexpected status code", zap.Int("status_code", statusCode))
 		return nil, ErrAccrualServerFailure
 	}
 }

@@ -41,20 +41,6 @@ func (m *MockBalanceService) EXPECT() *MockBalanceServiceMockRecorder {
 	return m.recorder
 }
 
-// ChangeUserBalance mocks base method.
-func (m *MockBalanceService) ChangeUserBalance(ctx context.Context, newBalance *models.Balance) error {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "ChangeUserBalance", ctx, newBalance)
-	ret0, _ := ret[0].(error)
-	return ret0
-}
-
-// ChangeUserBalance indicates an expected call of ChangeUserBalance.
-func (mr *MockBalanceServiceMockRecorder) ChangeUserBalance(ctx, newBalance any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ChangeUserBalance", reflect.TypeOf((*MockBalanceService)(nil).ChangeUserBalance), ctx, newBalance)
-}
-
 // GetUserBalance mocks base method.
 func (m *MockBalanceService) GetUserBalance(ctx context.Context, userID int) (*models.Balance, error) {
 	m.ctrl.T.Helper()
@@ -83,6 +69,20 @@ func (m *MockBalanceService) GetWithdrawalsByUser(ctx context.Context, id int) (
 func (mr *MockBalanceServiceMockRecorder) GetWithdrawalsByUser(ctx, id any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetWithdrawalsByUser", reflect.TypeOf((*MockBalanceService)(nil).GetWithdrawalsByUser), ctx, id)
+}
+
+// IncreaseUserBalance mocks base method.
+func (m *MockBalanceService) IncreaseUserBalance(ctx context.Context, userID int, amount float64) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "IncreaseUserBalance", ctx, userID, amount)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// IncreaseUserBalance indicates an expected call of IncreaseUserBalance.
+func (mr *MockBalanceServiceMockRecorder) IncreaseUserBalance(ctx, userID, amount any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IncreaseUserBalance", reflect.TypeOf((*MockBalanceService)(nil).IncreaseUserBalance), ctx, userID, amount)
 }
 
 // Withdraw mocks base method.
