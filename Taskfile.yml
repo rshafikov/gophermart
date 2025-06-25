@@ -41,6 +41,7 @@ tasks:
     desc: "Run final test from CI/CD"
     deps: [ test, build, ]
     cmds:
+      - task: db-migrate
       - defer: { task: db-reset }
       - |
         ./gophermarttest \

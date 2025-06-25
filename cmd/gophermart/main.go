@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"github.com/go-chi/chi/v5"
 	"github.com/rshafikov/gophermart/internal/app"
 	"github.com/rshafikov/gophermart/internal/client"
@@ -15,8 +14,7 @@ func main() {
 	app.InitConfig()
 
 	Application := app.NewApplication(app.Config)
-	Application.ConnectToDatabase(context.Background())
-	Application.MigrateDatabase(context.Background())
+	Application.SetupDB()
 
 	jwt := security.NewJWTHandler()
 	accrualClient := client.NewAccrualClient(Application.Config.AccrualAddress.String())
