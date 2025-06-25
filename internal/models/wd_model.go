@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"errors"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/core/security"
@@ -42,9 +41,4 @@ type WdFilter struct {
 	FinalQuery string
 	Sorted     bool
 	EntityID   int
-}
-
-type WdRepository interface {
-	GetManyWithFilter(ctx context.Context, filter *WdFilter) ([]*Wd, error)
-	CreateOne(ctx context.Context, tx *Wd) error
 }

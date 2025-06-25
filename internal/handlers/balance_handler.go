@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/rshafikov/gophermart/internal/core/contextkeys"
@@ -11,11 +12,18 @@ import (
 	"net/http"
 )
 
-type BalanceHandler struct {
-	BalanceService models.BalanceService
+type balanceHandler interface {
+	GetUserBalance(ctx context.Context, userID int) (*models.Balance, error)
+	IncreaseUserBalance(ctx context.Context, userID int, amount float64) error
+	Withdraw(ctx context.Context, balance *models.Balance, withdrawal *models.Wd) error
+	GetWithdrawalsByUser(ctx context.Context, id int) ([]*models.Wd, error)
 }
 
-func NewBalanceHandler(service models.BalanceService) *BalanceHandler {
+type BalanceHandler struct {
+	BalanceService balanceHandler
+}
+
+func NewBalanceHandler(service balanceHandler) *BalanceHandler {
 	return &BalanceHandler{BalanceService: service}
 }
 

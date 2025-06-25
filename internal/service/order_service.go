@@ -12,11 +12,18 @@ import (
 var ErrOrderAlreadyLoaded = errors.New("order has already loaded")
 var ErrOrderLoadedBySomeone = errors.New("order was loaded by another user")
 
-type OrderService struct {
-	repo models.OrderRepository
+type orderRepository interface {
+	CreateOne(ctx context.Context, order *models.Order) error
+	GetOneByNumeralID(ctx context.Context, numeralID string) (*models.Order, error)
+	GetManyByUserID(ctx context.Context, userID int) ([]*models.Order, error)
+	UpdateOne(ctx context.Context, order *models.Order) error
 }
 
-func NewOrderService(repo models.OrderRepository) *OrderService {
+type OrderService struct {
+	repo orderRepository
+}
+
+func NewOrderService(repo orderRepository) *OrderService {
 	return &OrderService{repo: repo}
 }
 

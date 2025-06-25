@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,12 +14,18 @@ import (
 	"net/http"
 )
 
+type userService interface {
+	Register(ctx context.Context, login, password string) error
+	Login(ctx context.Context, login, password string) (*models.User, error)
+	GetByLogin(ctx context.Context, login string) (*models.User, error)
+}
+
 type UserHandler struct {
-	UserService models.UserService
+	UserService userService
 	JWT         security.JWTHandler
 }
 
-func NewUserHandler(userService models.UserService, jwtService security.JWTHandler) *UserHandler {
+func NewUserHandler(userService userService, jwtService security.JWTHandler) *UserHandler {
 	return &UserHandler{UserService: userService, JWT: jwtService}
 }
 

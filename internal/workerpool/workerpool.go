@@ -14,17 +14,29 @@ import (
 const MaxTasksInPool = 100
 const TaskTimeout = time.Second
 
+type balanceIncreaser interface {
+	IncreaseUserBalance(ctx context.Context, userID int, amount float64) error
+}
+
+type orderUpdater interface {
+	UpdateOrder(ctx context.Context, order *models.Order) error
+}
+
+type accrualClient interface {
+	GetOrderStatus(ctx context.Context, number string) (*schemas.AccrualOrder, error)
+}
+
 type WorkerPool struct {
 	workers        int
 	tasksChan      chan OrderTask
 	resultsChan    chan OrderTask
 	stopChan       chan struct{}
-	client         client.Client
-	orderService   models.OrderService
-	balanceService models.BalanceService
+	client         accrualClient
+	orderService   orderUpdater
+	balanceService balanceIncreaser
 }
 
-func NewWorkerPool(workers int, client client.Client, ordersService models.OrderService, balanceService models.BalanceService) *WorkerPool {
+func NewWorkerPool(workers int, client accrualClient, ordersService orderUpdater, balanceService balanceIncreaser) *WorkerPool {
 	return &WorkerPool{
 		workers:        workers,
 		tasksChan:      make(chan OrderTask, MaxTasksInPool),
@@ -108,7 +120,7 @@ func (wp *WorkerPool) AddTask(task OrderTask) {
 }
 
 func (wp *WorkerPool) proceedOrder(task OrderTask) OrderTask {
-	ctx, cancel := context.WithTimeout(context.TODO(), TaskTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), TaskTimeout)
 	defer cancel()
 
 	order, err := wp.client.GetOrderStatus(ctx, task.OrderID)

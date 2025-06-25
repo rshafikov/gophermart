@@ -13,12 +13,22 @@ import (
 var ErrNotFoundBalance = errors.New("not found")
 var ErrInsufficientFunds = errors.New("insufficient funds")
 
-type BalanceService struct {
-	balanceRepo models.BalanceRepository
-	wdRepo      models.WdRepository
+type withdrawRepository interface {
+	GetManyWithFilter(ctx context.Context, filter *models.WdFilter) ([]*models.Wd, error)
+	CreateOne(ctx context.Context, tx *models.Wd) error
 }
 
-func NewBalanceService(balanceRepo models.BalanceRepository, wdRepo models.WdRepository) *BalanceService {
+type balanceRepository interface {
+	GetOneByUserID(ctx context.Context, userID int) (*models.Balance, error)
+	UpdateOne(ctx context.Context, balance *models.Balance) error
+}
+
+type BalanceService struct {
+	balanceRepo balanceRepository
+	wdRepo      withdrawRepository
+}
+
+func NewBalanceService(balanceRepo balanceRepository, wdRepo withdrawRepository) *BalanceService {
 	return &BalanceService{balanceRepo: balanceRepo, wdRepo: wdRepo}
 }
 

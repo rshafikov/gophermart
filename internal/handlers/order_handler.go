@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"github.com/rshafikov/gophermart/internal/core/contextkeys"
@@ -16,12 +17,18 @@ import (
 const MsgInternalServerError = "internal server error"
 const MsgInvalidOrderNumber = "invalid order number"
 
+type orderService interface {
+	CreateOrderIfNotExists(ctx context.Context, order *models.Order) error
+	GetOrders(ctx context.Context, userID int) ([]*models.Order, error)
+	UpdateOrder(ctx context.Context, order *models.Order) error
+}
+
 type OrderHandler struct {
-	Service models.OrderService
+	Service orderService
 	WP      *workerpool.WorkerPool
 }
 
-func NewOrderHandler(orderService models.OrderService, pool *workerpool.WorkerPool) *OrderHandler {
+func NewOrderHandler(orderService orderService, pool *workerpool.WorkerPool) *OrderHandler {
 	return &OrderHandler{Service: orderService, WP: pool}
 }
 

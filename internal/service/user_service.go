@@ -14,11 +14,16 @@ var ErrUserNotFound = errors.New("user not found")
 var ErrUserAlreadyExists = errors.New("login is not available")
 var ErrDB = errors.New("database error")
 
-type UserService struct {
-	repo models.UserRepository
+type userRepository interface {
+	CreateUser(ctx context.Context, user *models.User) error
+	GetByLogin(ctx context.Context, login string) (*models.User, error)
 }
 
-func NewUserService(repo models.UserRepository) *UserService {
+type UserService struct {
+	repo userRepository
+}
+
+func NewUserService(repo userRepository) *UserService {
 	return &UserService{repo: repo}
 }
 

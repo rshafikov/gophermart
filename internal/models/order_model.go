@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"github.com/rshafikov/gophermart/internal/core/logger"
@@ -50,17 +49,4 @@ func (o *Order) Validate() error {
 	}
 
 	return nil
-}
-
-type OrderRepository interface {
-	CreateOne(ctx context.Context, order *Order) error
-	GetOneByNumeralID(ctx context.Context, numeralID string) (*Order, error)
-	GetManyByUserID(ctx context.Context, userID int) ([]*Order, error)
-	UpdateOne(ctx context.Context, order *Order) error
-}
-
-type OrderService interface {
-	CreateOrderIfNotExists(ctx context.Context, order *Order) error
-	GetOrders(ctx context.Context, userID int) ([]*Order, error)
-	UpdateOrder(ctx context.Context, order *Order) error
 }
