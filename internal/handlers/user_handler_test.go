@@ -19,7 +19,7 @@ func TestUserHandler_Register(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUserService := mocks.NewMockUserService(ctrl)
+	mockUserService := mocks.NewMockuserService(ctrl)
 	mockJWTHandler := mocks.NewMockJWTHandler(ctrl)
 
 	handler := NewUserHandler(mockUserService, mockJWTHandler)
@@ -148,7 +148,7 @@ func TestUserHandler_Login(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockUserService := mocks.NewMockUserService(ctrl)
+	mockUserService := mocks.NewMockuserService(ctrl)
 	mockJWTHandler := mocks.NewMockJWTHandler(ctrl)
 	handler := NewUserHandler(mockUserService, mockJWTHandler)
 	apiUserLoginPath := "/api/user/login"

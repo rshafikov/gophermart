@@ -12,7 +12,7 @@ import (
 	"net/http"
 )
 
-type balanceHandler interface {
+type balanceService interface {
 	GetUserBalance(ctx context.Context, userID int) (*models.Balance, error)
 	IncreaseUserBalance(ctx context.Context, userID int, amount float64) error
 	Withdraw(ctx context.Context, balance *models.Balance, withdrawal *models.Wd) error
@@ -20,10 +20,10 @@ type balanceHandler interface {
 }
 
 type BalanceHandler struct {
-	BalanceService balanceHandler
+	BalanceService balanceService
 }
 
-func NewBalanceHandler(service balanceHandler) *BalanceHandler {
+func NewBalanceHandler(service balanceService) *BalanceHandler {
 	return &BalanceHandler{BalanceService: service}
 }
 

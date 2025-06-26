@@ -25,8 +25,8 @@ func TestBalanceHandler_GetUserBalance(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockBalanceService := mocks.NewMockBalanceService(ctrl)
-	mockUserService := mocks.NewMockUserService(ctrl)
+	mockBalanceService := mocks.NewMockbalanceService(ctrl)
+	mockUserService := mocks.NewMockuserService(ctrl)
 	mockJWTHandler := mocks.NewMockJWTHandler(ctrl)
 	authMiddleware := middlewares.Authenticater(mockJWTHandler, mockUserService)
 
@@ -121,8 +121,8 @@ func TestBalanceHandler_GetUserWithdrawals(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockBalanceService := mocks.NewMockBalanceService(ctrl)
-	mockUserService := mocks.NewMockUserService(ctrl)
+	mockBalanceService := mocks.NewMockbalanceService(ctrl)
+	mockUserService := mocks.NewMockuserService(ctrl)
 	mockJWTHandler := mocks.NewMockJWTHandler(ctrl)
 	authMiddleware := middlewares.Authenticater(mockJWTHandler, mockUserService)
 
@@ -223,8 +223,8 @@ func TestBalanceHandler_WithdrawFromBalance(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
-	mockBalanceService := mocks.NewMockBalanceService(ctrl)
-	mockUserService := mocks.NewMockUserService(ctrl)
+	mockBalanceService := mocks.NewMockbalanceService(ctrl)
+	mockUserService := mocks.NewMockuserService(ctrl)
 	mockJWTHandler := mocks.NewMockJWTHandler(ctrl)
 	authMiddleware := middlewares.Authenticater(mockJWTHandler, mockUserService)
 
