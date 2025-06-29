@@ -3,9 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/core/security"
 	"github.com/rshafikov/gophermart/internal/models"
-	"log"
+	"go.uber.org/zap"
 )
 
 var ErrPasswordMismatch = errors.New("password mismatch")
@@ -13,11 +14,16 @@ var ErrUserNotFound = errors.New("user not found")
 var ErrUserAlreadyExists = errors.New("login is not available")
 var ErrDB = errors.New("database error")
 
-type UserService struct {
-	repo models.UserRepository
+type userRepository interface {
+	CreateUser(ctx context.Context, user *models.User) error
+	GetByLogin(ctx context.Context, login string) (*models.User, error)
 }
 
-func NewUserService(repo models.UserRepository) *UserService {
+type UserService struct {
+	repo userRepository
+}
+
+func NewUserService(repo userRepository) *UserService {
 	return &UserService{repo: repo}
 }
 
@@ -43,7 +49,7 @@ func (s *UserService) Register(ctx context.Context, login, password string) erro
 func (s *UserService) Login(ctx context.Context, login, password string) (*models.User, error) {
 	user, err := s.repo.GetByLogin(ctx, login)
 	if err != nil {
-		log.Println("unable to GET user by login:", err)
+		logger.L.Error("unable to get user by login", zap.Error(err))
 		return nil, ErrUserNotFound
 	}
 
@@ -58,7 +64,7 @@ func (s *UserService) Login(ctx context.Context, login, password string) (*model
 func (s *UserService) GetByLogin(ctx context.Context, login string) (*models.User, error) {
 	user, err := s.repo.GetByLogin(ctx, login)
 	if err != nil {
-		log.Println("unable to GET user by login:", err)
+		logger.L.Error("unable to get user by login", zap.Error(err))
 		return nil, ErrUserNotFound
 	}
 

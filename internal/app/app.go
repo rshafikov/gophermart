@@ -3,19 +3,19 @@ package app
 import (
 	"context"
 	"errors"
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/rshafikov/gophermart/internal/core/logger"
 	"github.com/rshafikov/gophermart/internal/database"
 	"go.uber.org/zap"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 )
+
+const dbConnectionTimeout = 10 * time.Second
 
 type Application struct {
 	Config defaultConfig
@@ -29,29 +29,20 @@ func NewApplication(cfg defaultConfig) *Application {
 	}
 }
 
-func (app *Application) ConnectToDatabase(ctx context.Context) error {
-	dsn := app.Config.DB.URI
-	_, err := pgx.Connect(ctx, dsn)
+func (app *Application) SetupDB() {
+	ctx, cancel := context.WithTimeout(context.Background(), dbConnectionTimeout)
+	defer cancel()
+	err := app.DB.ConnectToDatabase(ctx, app.Config.DB.URI)
 	if err != nil {
-		var pgErr *pgconn.ConnectError
-		if errors.As(err, &pgErr) {
-			logger.L.Debug("unable to connect to database", zap.String("DB_URI", dsn))
-			return database.ErrConnectDB
+		if errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			logger.L.Fatal("db connection timeout", zap.Error(err))
 		}
-		return err
+		if errors.Is(err, database.ErrDB) {
+			logger.L.Fatal("unable to connect to db", zap.Error(err))
+		} else if errors.Is(err, database.ErrConnectDB) {
+			logger.L.Fatal("db connection error", zap.Error(err))
+		}
 	}
-
-	app.DB.Pool, err = pgxpool.New(ctx, dsn)
-	if err != nil {
-		return err
-	}
-
-	err = app.DB.Pool.Ping(ctx)
-	if err != nil {
-		return err
-	}
-	log.Println("Connected to database:", dsn)
-	return nil
 }
 
 func (app *Application) RunServer(router http.Handler) {

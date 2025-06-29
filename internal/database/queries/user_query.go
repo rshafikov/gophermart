@@ -2,7 +2,8 @@ package queries
 
 const CreateUser = `
 	INSERT INTO users (login, password) 
-	VALUES ($1, $2);
+	VALUES ($1, $2)
+	RETURNING id
 `
 
 const GetUserByLogin = `
